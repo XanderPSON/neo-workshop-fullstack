@@ -8,14 +8,15 @@ export function Providers(props: { children: ReactNode }) {
   return (
     <OnchainKitProvider
       apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
-          chain={baseSepolia}
-          config={{ appearance: { 
-            mode: 'auto',
-        }
+      chain={baseSepolia}
+      config={{
+        appearance: {
+          mode: 'auto',
+        },
       }}
+      projectId={process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
     >
       {props.children}
     </OnchainKitProvider>
   );
 }
-
