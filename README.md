@@ -2,6 +2,8 @@
 
 A Next.js starter app for the **Intro to Onchain Development** workshop (Part 3). This app aggregates prediction markets from your entire pod into a single dashboard where you can view odds and place votes.
 
+This workshop uses **AI-driven development**: prompt your AI assistant to generate React components, Wagmi hooks, and OnchainKit integrations from the architectural requirements in the code, review the output, then deploy.
+
 ## The Cross-Wire
 
 This app is designed to show **all markets** from your pod, not just yours. You need to collect the **Market contract address** and **Token contract address** from each pod-mate and wire them into `lib/podConfig.ts`.
@@ -19,8 +21,14 @@ This app is designed to show **all markets** from your pod, not just yours. You 
     Create `.env.local`:
 
     ```bash
-    NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_onchainkit_api_key
+    # WalletConnect Project ID (from 00-setup)
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
+
+    # Your wallet private key for server-side admin operations (hex-prefixed)
+    PRIVATE_KEY=0x..your_private_key_here..
+
+    # Base Sepolia RPC
+    BASE_SEPOLIA_RPC=https://sepolia.base.org
     NEXT_PUBLIC_RPC_URL=https://sepolia.base.org
     ```
 
@@ -65,4 +73,4 @@ The starter provides the layout scaffolding, wallet connection, and market card 
 
 ## Deploying
 
-Push to GitHub and deploy on [Vercel](https://vercel.com). Add your env vars in the Vercel dashboard.
+Push to GitHub and deploy on [Vercel](https://vercel.com). Add your env vars (`NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`, `NEXT_PUBLIC_RPC_URL`) in the Vercel dashboard.
