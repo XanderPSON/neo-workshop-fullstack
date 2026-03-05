@@ -27,7 +27,7 @@ export const PredictionMarketABI = [
   },
   {
     inputs: [{ internalType: "uint256", name: "marketId", type: "uint256" }],
-    name: "MarketResolved",
+    name: "MarketAlreadyResolved",
     type: "error",
   },
   {
