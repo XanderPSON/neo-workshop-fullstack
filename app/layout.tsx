@@ -4,7 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME,
+  title: 'Prediction Market Aggregator',
   description: 'Aggregated Prediction Market Dashboard — Intro to Onchain Development',
 };
 

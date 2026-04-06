@@ -29,7 +29,7 @@ import { formatEther } from 'viem';
 // import { useAccount, useChainId, useReadContracts, useSwitchChain } from 'wagmi';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { baseSepolia } from 'viem/chains';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { POD_MARKETS } from '@/lib/podConfig';
 // TODO: Uncomment these when implementing contract reads and votes.
@@ -162,6 +162,8 @@ function MarketCard({
   const resolved = false;
   const hasVoted = false;
 
+  const [voteAmount, setVoteAmount] = useState('10');
+
   const totalPool = yesPool + noPool;
   const yesPercent = totalPool > BigInt(0) ? Number((yesPool * BigInt(100)) / totalPool) : 50;
   const noPercent = 100 - yesPercent;
@@ -173,7 +175,7 @@ function MarketCard({
   //   1. approve(marketAddress, amount) on the Token contract
   //   2. vote(marketId, side, amount) on the Market contract
   //
-  // Example for voting YES with 10 tokens:
+  // Use voteAmount (user input) instead of a hardcoded value:
   //
   //   const voteYesCalls = [
   //     {
@@ -181,7 +183,7 @@ function MarketCard({
   //       data: encodeFunctionData({
   //         abi: ERC20ABI,
   //         functionName: 'approve',
-  //         args: [pod.marketAddress, parseEther('10')],
+  //         args: [pod.marketAddress, parseEther(voteAmount || '0')],
   //       }),
   //     },
   //     {
@@ -189,7 +191,7 @@ function MarketCard({
   //       data: encodeFunctionData({
   //         abi: PredictionMarketABI,
   //         functionName: 'vote',
-  //         args: [0n, true, parseEther('10')],
+  //         args: [0n, true, parseEther(voteAmount || '0')],
   //       }),
   //     },
   //   ];
@@ -231,35 +233,49 @@ function MarketCard({
       ) : !account.address ? (
         <div className="text-center text-gray-500 text-sm">Connect wallet to vote</div>
       ) : (
-        <div className="flex gap-3">
-          {/* ================================================================
-              TODO: Replace these placeholder buttons with <Transaction> 
-              components that execute the batched approve + vote calls.
-              
-              Example:
-              
-              <Transaction calls={voteYesCalls}>
-                <TransactionButton text="Vote Yes (10 Tokens)" />
-                <TransactionSponsor />
-                <TransactionStatus>
-                  <TransactionStatusLabel />
-                  <TransactionStatusAction />
-                </TransactionStatus>
-              </Transaction>
-              
-              ================================================================ */}
-          <button
-            disabled
-            className="flex-1 bg-green-600/20 text-green-400 border border-green-600/40 rounded-lg py-2 text-sm font-medium cursor-not-allowed opacity-60"
-          >
-            Vote Yes (10 Tokens)
-          </button>
-          <button
-            disabled
-            className="flex-1 bg-red-600/20 text-red-400 border border-red-600/40 rounded-lg py-2 text-sm font-medium cursor-not-allowed opacity-60"
-          >
-            Vote No (10 Tokens)
-          </button>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              step="any"
+              value={voteAmount}
+              onChange={(e) => setVoteAmount(e.target.value)}
+              placeholder="Token amount"
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+            <span className="text-xs text-gray-400 whitespace-nowrap">tokens</span>
+          </div>
+          <div className="flex gap-3">
+            {/* ================================================================
+                TODO: Replace these placeholder buttons with <Transaction> 
+                components that execute the batched approve + vote calls.
+                
+                Example:
+                
+                <Transaction calls={voteYesCalls}>
+                  <TransactionButton text={`Vote Yes (${voteAmount} Tokens)`} />
+                  <TransactionSponsor />
+                  <TransactionStatus>
+                    <TransactionStatusLabel />
+                    <TransactionStatusAction />
+                  </TransactionStatus>
+                </Transaction>
+                
+                ================================================================ */}
+            <button
+              disabled
+              className="flex-1 bg-green-600/20 text-green-400 border border-green-600/40 rounded-lg py-2 text-sm font-medium cursor-not-allowed opacity-60"
+            >
+              Vote Yes ({voteAmount || '0'} Tokens)
+            </button>
+            <button
+              disabled
+              className="flex-1 bg-red-600/20 text-red-400 border border-red-600/40 rounded-lg py-2 text-sm font-medium cursor-not-allowed opacity-60"
+            >
+              Vote No ({voteAmount || '0'} Tokens)
+            </button>
+          </div>
         </div>
       )}
     </div>
