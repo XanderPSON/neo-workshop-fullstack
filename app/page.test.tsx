@@ -33,11 +33,12 @@ describe('App (empty POD_MARKETS)', () => {
     vi.resetModules();
   });
 
-  it('renders the empty state when POD_MARKETS is empty', () => {
+  it('renders the setup checklist when POD_MARKETS is empty', () => {
     render(<App />);
-    expect(screen.getByText('Prediction Market Aggregator')).toBeInTheDocument();
-    expect(screen.getByText(/No markets configured yet/)).toBeInTheDocument();
+    expect(screen.getByText('🔮 Prediction Market Aggregator')).toBeInTheDocument();
+    expect(screen.getByText(/isn't wired up yet/)).toBeInTheDocument();
     expect(screen.getByText('lib/podConfig.ts')).toBeInTheDocument();
+    expect(screen.getByText('App running')).toBeInTheDocument();
   });
 });
 
@@ -46,7 +47,7 @@ describe('App (with POD_MARKETS entries)', () => {
     vi.resetModules();
   });
 
-  it('renders market cards when POD_MARKETS has entries', async () => {
+  it('renders MarketCard stubs when POD_MARKETS has entries', async () => {
     vi.doMock('@/lib/podConfig', () => ({
       POD_MARKETS: [
         {
@@ -65,36 +66,8 @@ describe('App (with POD_MARKETS entries)', () => {
     const { default: AppWithMarkets } = await import('./page');
     render(<AppWithMarkets />);
 
-    expect(screen.getByText("TestAlice's Market")).toBeInTheDocument();
-    expect(screen.getByText("TestBob's Market")).toBeInTheDocument();
-    expect(screen.getAllByText('Loading...')).toHaveLength(2);
-    expect(screen.getAllByText('Yes 50%')).toHaveLength(2);
-    expect(screen.getAllByText('No 50%')).toHaveLength(2);
-  });
-
-  it('shows disabled vote buttons with placeholder text', async () => {
-    vi.doMock('wagmi', () => ({
-      useAccount: () => ({ address: '0xdeadbeef' }),
-      useChainId: () => 84532,
-      useSwitchChain: () => ({ switchChain: vi.fn() }),
-    }));
-
-    vi.doMock('@/lib/podConfig', () => ({
-      POD_MARKETS: [
-        {
-          owner: 'TestAlice',
-          marketAddress: '0x1111111111111111111111111111111111111111',
-          tokenAddress: '0x2222222222222222222222222222222222222222',
-        },
-      ],
-    }));
-
-    const { default: AppWithMarkets } = await import('./page');
-    render(<AppWithMarkets />);
-
-    const yesButton = screen.getByText('Vote Yes (10 Tokens)');
-    const noButton = screen.getByText('Vote No (10 Tokens)');
-    expect(yesButton).toBeDisabled();
-    expect(noButton).toBeDisabled();
+    expect(screen.getAllByText('MarketCard not implemented yet')).toHaveLength(2);
+    expect(screen.getByText(/TestAlice/)).toBeInTheDocument();
+    expect(screen.getByText(/TestBob/)).toBeInTheDocument();
   });
 });
