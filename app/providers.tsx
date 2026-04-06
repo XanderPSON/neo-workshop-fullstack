@@ -14,7 +14,6 @@ export function Providers(props: { children: ReactNode }) {
           mode: 'auto',
         },
       }}
-      projectId={process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
     >
       {props.children}
     </OnchainKitProvider>

@@ -21,10 +21,10 @@ This app is designed to show **all markets** from your pod, not just yours. You 
     Create `.env.local`:
 
     ```bash
-    # WalletConnect Project ID (from 00-setup)
-    NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
+    # OnchainKit API Key (optional, get one at https://portal.cdp.coinbase.com/)
+    NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_cdp_api_key_here
 
-    # Your wallet private key for server-side admin operations (hex-prefixed)
+    # Your dev wallet private key for server-side admin operations (hex-prefixed)
     PRIVATE_KEY=0x..your_private_key_here..
 
     # Base Sepolia RPC
@@ -73,4 +73,4 @@ The starter provides the layout scaffolding, wallet connection, and market card 
 
 ## Deploying
 
-Push to GitHub and deploy on [Vercel](https://vercel.com). Add your env vars (`NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`, `NEXT_PUBLIC_RPC_URL`) in the Vercel dashboard.
+Push to GitHub and deploy on [Vercel](https://vercel.com). Add your env vars (`NEXT_PUBLIC_ONCHAINKIT_API_KEY`, `NEXT_PUBLIC_RPC_URL`) in the Vercel dashboard.
