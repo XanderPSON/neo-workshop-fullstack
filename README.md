@@ -57,11 +57,25 @@ This app is designed to show **all markets** from your pod, not just yours. You 
 
 ## What You'll Build
 
-The starter provides the layout scaffolding, wallet connection, and market card grid. You'll implement:
+The starter provides the layout scaffolding, wallet connection, and card grid. You'll implement three things:
 
-1. **Reading onchain data** — `useReadContracts` (multicall) to fetch market odds from all pod contracts
-2. **Writing onchain data** — Batched `approve` + `vote` transactions using OnchainKit's `<Transaction>` component
-3. **Enhancements** — Odds visualization, token balances, claim winnings
+### Task 1: Backend — `app/api/markets/route.ts`
+
+Create a Next.js API route that reads market data from the blockchain using Viem. This is a server-side endpoint that calls `markets(0)` on each pod contract and returns JSON.
+
+**Key APIs:** `createPublicClient`, `http`, `baseSepolia`, `client.readContract()`, `formatEther()`, `NextResponse.json()`
+
+### Task 2: Frontend — `components/MarketCard.tsx`
+
+Replace the yellow placeholder stub with a real component that displays live market data. Use Wagmi's `useReadContracts` hook to batch-fetch `markets(0)` and `hasVoted(0, address)` from each pod contract.
+
+**Key APIs:** `useReadContracts` (wagmi), `formatEther` (viem), `PredictionMarketABI` (`@/lib/contracts`)
+
+### Task 3: Transactions — Vote buttons in MarketCard
+
+Add voting to your MarketCard by building batched `approve` + `vote` call arrays with `encodeFunctionData`, then wiring them into OnchainKit's `<Transaction>` component.
+
+**Key APIs:** `encodeFunctionData`, `parseEther` (viem), `Transaction`, `TransactionButton`, `TransactionSponsor` (`@coinbase/onchainkit/transaction`)
 
 ## Tech Stack
 
