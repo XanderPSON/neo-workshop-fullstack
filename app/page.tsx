@@ -35,13 +35,46 @@ export default function App() {
   if (POD_MARKETS.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen font-sans dark:bg-background dark:text-white bg-white text-black">
-        <div className="text-center max-w-md space-y-4">
-          <h1 className="text-2xl font-bold">Prediction Market Aggregator</h1>
+        <div className="text-center max-w-lg space-y-6">
+          <h1 className="text-3xl font-bold">🔮 Prediction Market Aggregator</h1>
           <p className="text-gray-400">
-            No markets configured yet. Open{' '}
-            <code className="bg-gray-800 px-2 py-0.5 rounded text-sm">lib/podConfig.ts</code>{' '}
-            and add your pod&apos;s Market and Token addresses.
+            Your dashboard isn&apos;t wired up yet. Follow the Part 3 instructions to build it:
           </p>
+          <div className="text-left space-y-3 bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <span className="text-green-400">✅</span>
+              <span>App running</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-gray-600">⬜</span>
+              <span>
+                Add contract addresses to{' '}
+                <code className="bg-gray-800 px-2 py-0.5 rounded text-sm">lib/podConfig.ts</code>
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-gray-600">⬜</span>
+              <span>
+                Build the API route{' '}
+                <code className="bg-gray-800 px-2 py-0.5 rounded text-sm">app/api/markets/route.ts</code>
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-gray-600">⬜</span>
+              <span>
+                Build the{' '}
+                <code className="bg-gray-800 px-2 py-0.5 rounded text-sm">MarketCard</code>{' '}
+                component
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-gray-600">⬜</span>
+              <span>
+                Wire up voting with{' '}
+                <code className="bg-gray-800 px-2 py-0.5 rounded text-sm">&lt;Transaction&gt;</code>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     );

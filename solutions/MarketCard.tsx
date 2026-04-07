@@ -1,8 +1,8 @@
-// SOLUTION — Reference implementation for components/MarketCard.tsx (Part 3: Onchain Fullstack)
-// This shows the completed useReadContracts + Transaction component integration.
-
 'use client';
 
+import { useReadContracts } from 'wagmi';
+import type { useAccount } from 'wagmi';
+import { formatEther, encodeFunctionData, parseEther } from 'viem';
 import {
   Transaction,
   TransactionButton,
@@ -11,54 +11,52 @@ import {
   TransactionStatusAction,
   TransactionStatusLabel,
 } from '@coinbase/onchainkit/transaction';
-import { encodeFunctionData, parseEther, formatEther } from 'viem';
-import type { useAccount } from 'wagmi';
-import { useReadContracts } from 'wagmi';
-import { useState } from 'react';
 
 import type { PodMarket } from '@/lib/podConfig';
 import { PredictionMarketABI, ERC20ABI } from '@/lib/contracts';
 
-export function MarketCard({
-  pod,
-  account,
-}: {
+interface MarketCardProps {
   pod: PodMarket;
   account: ReturnType<typeof useAccount>;
-}) {
-  const { data } = useReadContracts({
-    contracts: [
-      {
-        address: pod.marketAddress,
-        abi: PredictionMarketABI,
-        functionName: 'markets',
-        args: [0n],
-      },
-      {
+}
+
+export function MarketCard({ pod, account }: MarketCardProps) {
+  const marketContract = {
+    address: pod.marketAddress,
+    abi: PredictionMarketABI,
+    functionName: 'markets',
+    args: [0n],
+  } as const;
+
+  const hasVotedContract = account.address
+    ? ({
         address: pod.marketAddress,
         abi: PredictionMarketABI,
         functionName: 'hasVoted',
-        args: [0n, account.address!],
-      },
-    ],
+        args: [0n, account.address],
+      } as const)
+    : null;
+
+  const { data } = useReadContracts({
+    contracts: hasVotedContract
+      ? [marketContract, hasVotedContract]
+      : [marketContract],
   });
 
   const [marketResult, hasVotedResult] = data ?? [];
-
   const marketData = marketResult?.result as
     | [string, bigint, bigint, boolean, boolean]
     | undefined;
 
   const question = marketData?.[0] ?? 'Loading...';
-  const yesPool = marketData?.[1] ?? BigInt(0);
-  const noPool = marketData?.[2] ?? BigInt(0);
+  const yesPool = marketData?.[1] ?? 0n;
+  const noPool = marketData?.[2] ?? 0n;
   const resolved = marketData?.[3] ?? false;
   const hasVoted = (hasVotedResult?.result as boolean) ?? false;
 
-  const [voteAmount, setVoteAmount] = useState('10');
-
   const totalPool = yesPool + noPool;
-  const yesPercent = totalPool > BigInt(0) ? Number((yesPool * BigInt(100)) / totalPool) : 50;
+  const yesPercent =
+    totalPool > 0n ? Number((yesPool * 100n) / totalPool) : 50;
   const noPercent = 100 - yesPercent;
 
   const voteYesCalls = [
@@ -67,7 +65,7 @@ export function MarketCard({
       data: encodeFunctionData({
         abi: ERC20ABI,
         functionName: 'approve',
-        args: [pod.marketAddress, parseEther(voteAmount || '0')],
+        args: [pod.marketAddress, parseEther('10')],
       }),
     },
     {
@@ -75,7 +73,7 @@ export function MarketCard({
       data: encodeFunctionData({
         abi: PredictionMarketABI,
         functionName: 'vote',
-        args: [0n, true, parseEther(voteAmount || '0')],
+        args: [0n, true, parseEther('10')],
       }),
     },
   ];
@@ -86,7 +84,7 @@ export function MarketCard({
       data: encodeFunctionData({
         abi: ERC20ABI,
         functionName: 'approve',
-        args: [pod.marketAddress, parseEther(voteAmount || '0')],
+        args: [pod.marketAddress, parseEther('10')],
       }),
     },
     {
@@ -94,7 +92,7 @@ export function MarketCard({
       data: encodeFunctionData({
         abi: PredictionMarketABI,
         functionName: 'vote',
-        args: [0n, false, parseEther(voteAmount || '0')],
+        args: [0n, false, parseEther('10')],
       }),
     },
   ];
@@ -123,43 +121,35 @@ export function MarketCard({
       </div>
 
       {resolved ? (
-        <div className="text-center text-yellow-400 text-sm font-medium">Market Resolved</div>
+        <div className="text-center text-yellow-400 text-sm font-medium">
+          Market Resolved
+        </div>
       ) : hasVoted ? (
-        <div className="text-center text-gray-400 text-sm">You already voted on this market.</div>
+        <div className="text-center text-gray-400 text-sm">
+          You already voted on this market.
+        </div>
       ) : !account.address ? (
-        <div className="text-center text-gray-500 text-sm">Connect wallet to vote</div>
+        <div className="text-center text-gray-500 text-sm">
+          Connect wallet to vote
+        </div>
       ) : (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={voteAmount}
-              onChange={(e) => setVoteAmount(e.target.value)}
-              placeholder="Token amount"
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            />
-            <span className="text-xs text-gray-400 whitespace-nowrap">tokens</span>
-          </div>
-          <div className="flex gap-3">
-            <Transaction calls={voteYesCalls}>
-              <TransactionButton text={`Vote Yes (${voteAmount} Tokens)`} />
-              <TransactionSponsor />
-              <TransactionStatus>
-                <TransactionStatusLabel />
-                <TransactionStatusAction />
-              </TransactionStatus>
-            </Transaction>
-            <Transaction calls={voteNoCalls}>
-              <TransactionButton text={`Vote No (${voteAmount} Tokens)`} />
-              <TransactionSponsor />
-              <TransactionStatus>
-                <TransactionStatusLabel />
-                <TransactionStatusAction />
-              </TransactionStatus>
-            </Transaction>
-          </div>
+        <div className="flex gap-3">
+          <Transaction calls={voteYesCalls}>
+            <TransactionButton text="Vote Yes (10 Tokens)" />
+            <TransactionSponsor />
+            <TransactionStatus>
+              <TransactionStatusLabel />
+              <TransactionStatusAction />
+            </TransactionStatus>
+          </Transaction>
+          <Transaction calls={voteNoCalls}>
+            <TransactionButton text="Vote No (10 Tokens)" />
+            <TransactionSponsor />
+            <TransactionStatus>
+              <TransactionStatusLabel />
+              <TransactionStatusAction />
+            </TransactionStatus>
+          </Transaction>
         </div>
       )}
     </div>
