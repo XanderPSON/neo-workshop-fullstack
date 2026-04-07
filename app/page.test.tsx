@@ -67,6 +67,6 @@ describe('App (with POD_MARKETS entries)', () => {
 
     expect(screen.getByText("TestAlice's Market")).toBeInTheDocument();
     expect(screen.getByText("TestBob's Market")).toBeInTheDocument();
-    expect(screen.getAllByText('MarketCard not implemented yet')).toHaveLength(2);
+    expect(screen.getAllByText('components/MarketCard.tsx')).toHaveLength(2);
   });
 });
