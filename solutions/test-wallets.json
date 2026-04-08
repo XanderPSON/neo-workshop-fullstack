@@ -1,0 +1,29 @@
+[
+  {
+    "owner": "Alice",
+    "privateKey": "0xed09b44a1604977f930d441204ad201784b25bb8556b5387949efe79ed0c28c1",
+    "address": "0x7B1A4C494fDaad9Caa100B7fef212c57af16186F",
+    "tokenAddress": "0x6d22921D7a72C9329d3963E73E44690b768D0f1B",
+    "tokenSymbol": "ALIC",
+    "marketAddress": "0x90663E0748012b80bE07edef446aA6b4E73d57C1",
+    "question": "Will Bitcoin reach $200k by end of 2026?"
+  },
+  {
+    "owner": "Bob",
+    "privateKey": "0xf6f7c13ece1738106643b62e2d5273a21eff58d2944f71d56ca347b8c71d4197",
+    "address": "0x094f15aD9bf5e8411825f2f30b84aC3af8E9bbEE",
+    "tokenAddress": "0xac88656cb76ec32e7ead8d72ed949f06c95cc466",
+    "tokenSymbol": "BOB",
+    "marketAddress": "0x21c78ede8089227c569971ffeece9faaaaf64ef6",
+    "question": "Will AI agents replace most software engineers by 2027?"
+  },
+  {
+    "owner": "Carol",
+    "privateKey": "0x210d01fccc89e0084539ce0827147379feb13a3d4e383a27822e459c044333b8",
+    "address": "0xEeFBB0Fd045E6ffff609e031A8EAF3C13410810F",
+    "tokenAddress": "0x47a7ce75c888259da7f9c93a43f349c4f544e859",
+    "tokenSymbol": "CRL",
+    "marketAddress": "0x6d62e235fe31e4efba88a555932c101f7c38ce7c",
+    "question": "Will humans land on Mars before 2030?"
+  }
+]
