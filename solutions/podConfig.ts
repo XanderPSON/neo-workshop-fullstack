@@ -7,17 +7,17 @@ export type PodMarket = {
 export const POD_MARKETS: PodMarket[] = [
   {
     owner: "Alice",
-    marketAddress: "0x90663E0748012b80bE07edef446aA6b4E73d57C1",
+    marketAddress: "0x88bf2df5c3f6e55831c1d827dbc0b485777f625d",
     tokenAddress: "0x6d22921D7a72C9329d3963E73E44690b768D0f1B",
   },
   {
     owner: "Bob",
-    marketAddress: "0x21c78ede8089227c569971ffeece9faaaaf64ef6",
+    marketAddress: "0x669508ff94b7a9599776d95f3d81207061254c39",
     tokenAddress: "0xac88656cb76ec32e7ead8d72ed949f06c95cc466",
   },
   {
     owner: "Carol",
-    marketAddress: "0x6d62e235fe31e4efba88a555932c101f7c38ce7c",
+    marketAddress: "0x3dbec0d273885787d9573a47864639f42b767d00",
     tokenAddress: "0x47a7ce75c888259da7f9c93a43f349c4f544e859",
   },
 ];
