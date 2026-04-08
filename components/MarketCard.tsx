@@ -29,7 +29,7 @@ interface MarketCardProps {
  */
 export function MarketCard({ pod, account }: MarketCardProps) {
   return (
-    <div className="border border-dashed border-yellow-600/50 rounded-xl p-5 flex flex-col items-center justify-center space-y-3 bg-yellow-900/10 min-h-[200px]">
+    <div data-market-stub className="border border-dashed border-yellow-600/50 rounded-xl p-5 flex flex-col items-center justify-center space-y-3 bg-yellow-900/10 min-h-[200px]">
       <div className="text-yellow-400 text-2xl">🔧</div>
       <div className="text-sm text-yellow-400 font-medium text-center">
         MarketCard not implemented yet
