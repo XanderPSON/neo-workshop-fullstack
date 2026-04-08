@@ -28,22 +28,22 @@ export function MarketCard({ pod, account }: MarketCardProps) {
     args: [0n],
   } as const;
 
-  const hasVotedContract = account.address
+  const amountVotedContract = account.address
     ? ({
         address: pod.marketAddress,
         abi: PredictionMarketABI,
-        functionName: 'hasVoted',
+        functionName: 'amountVoted',
         args: [0n, account.address],
       } as const)
     : null;
 
   const { data } = useReadContracts({
-    contracts: hasVotedContract
-      ? [marketContract, hasVotedContract]
+    contracts: amountVotedContract
+      ? [marketContract, amountVotedContract]
       : [marketContract],
   });
 
-  const [marketResult, hasVotedResult] = data ?? [];
+  const [marketResult, amountVotedResult] = data ?? [];
   const marketData = marketResult?.result as
     | [string, bigint, bigint, boolean, boolean]
     | undefined;
@@ -52,7 +52,7 @@ export function MarketCard({ pod, account }: MarketCardProps) {
   const yesPool = marketData?.[1] ?? 0n;
   const noPool = marketData?.[2] ?? 0n;
   const resolved = marketData?.[3] ?? false;
-  const hasVoted = (hasVotedResult?.result as boolean) ?? false;
+  const userStake = (amountVotedResult?.result as bigint) ?? 0n;
 
   const totalPool = yesPool + noPool;
   const yesPercent =
@@ -124,33 +124,36 @@ export function MarketCard({ pod, account }: MarketCardProps) {
         <div className="text-center text-yellow-400 text-sm font-medium">
           Market Resolved
         </div>
-      ) : hasVoted ? (
-        <div className="text-center text-gray-400 text-sm">
-          You already voted on this market.
-        </div>
       ) : !account.address ? (
         <div className="text-center text-gray-500 text-sm">
           Connect wallet to vote
         </div>
       ) : (
-        <div className="flex gap-3">
-          <Transaction calls={voteYesCalls}>
-            <TransactionButton text="Vote Yes (10 Tokens)" />
-            <TransactionSponsor />
-            <TransactionStatus>
-              <TransactionStatusLabel />
-              <TransactionStatusAction />
-            </TransactionStatus>
-          </Transaction>
-          <Transaction calls={voteNoCalls}>
-            <TransactionButton text="Vote No (10 Tokens)" />
-            <TransactionSponsor />
-            <TransactionStatus>
-              <TransactionStatusLabel />
-              <TransactionStatusAction />
-            </TransactionStatus>
-          </Transaction>
-        </div>
+        <>
+          {userStake > 0n && (
+            <div className="text-center text-gray-400 text-xs">
+              You&apos;ve staked {formatEther(userStake)} tokens
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Transaction calls={voteYesCalls}>
+              <TransactionButton text="Vote Yes (10 Tokens)" />
+              <TransactionSponsor />
+              <TransactionStatus>
+                <TransactionStatusLabel />
+                <TransactionStatusAction />
+              </TransactionStatus>
+            </Transaction>
+            <Transaction calls={voteNoCalls}>
+              <TransactionButton text="Vote No (10 Tokens)" />
+              <TransactionSponsor />
+              <TransactionStatus>
+                <TransactionStatusLabel />
+                <TransactionStatusAction />
+              </TransactionStatus>
+            </Transaction>
+          </div>
+        </>
       )}
     </div>
   );

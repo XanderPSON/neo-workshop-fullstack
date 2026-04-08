@@ -15,9 +15,10 @@ interface MarketCardProps {
  *
  * 1. Fetch market data (question, yesPool, noPool, resolved) using `useReadContracts`
  *    from wagmi — call `markets(0)` on the pod's market contract
- * 2. Fetch whether the connected wallet has already voted — call `hasVoted(0, address)`
- * 3. Display the market question, an odds bar (green/red), and pool sizes
+ * 2. Fetch the user's cumulative stake — call `amountVoted(0, address)`
+ * 3. Display the market question, an odds bar (green/red), pool sizes, and user's stake
  * 4. Show vote buttons that batch `approve` + `vote` using OnchainKit's <Transaction>
+ *    (users can vote multiple times!)
  *
  * Available imports you'll need:
  *   - `useReadContracts` from 'wagmi'

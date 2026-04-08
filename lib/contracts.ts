@@ -11,14 +11,6 @@ export const PredictionMarketABI = [
   },
   {
     inputs: [
-      { internalType: "uint256", name: "marketId", type: "uint256" },
-      { internalType: "address", name: "voter", type: "address" },
-    ],
-    name: "AlreadyVoted",
-    type: "error",
-  },
-  {
-    inputs: [
       { internalType: "uint256", name: "amount", type: "uint256" },
       { internalType: "uint256", name: "allowance", type: "uint256" },
     ],
@@ -126,6 +118,16 @@ export const PredictionMarketABI = [
     ],
     name: "hasVoted",
     outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "marketId", type: "uint256" },
+      { internalType: "address", name: "voter", type: "address" },
+    ],
+    name: "amountVoted",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
