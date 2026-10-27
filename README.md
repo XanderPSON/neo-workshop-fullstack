@@ -65,9 +65,9 @@ Replace the yellow placeholder stub with a real component that displays live mar
 
 ### Task 3: Transactions — Vote buttons in MarketCard
 
-Add voting by building batched `approve` + `vote` call arrays with `encodeFunctionData`, then sending them with wagmi's `useSendCalls` (smart wallets show one approval; other wallets fall back to two transactions).
+Add voting: `buildVoteCalls(pod, side)` in `lib/voteCalls.ts` already encodes the `approve` + `vote` pair. Send it with wagmi's `useSendCalls` (smart wallets show one approval; other wallets fall back to two transactions), track it with `useWaitForCallsStatus`, and refetch the card once it lands.
 
-**Key APIs:** `encodeFunctionData`, `parseEther` (viem), `useSendCalls`, `useWaitForCallsStatus` (wagmi)
+**Key APIs:** `buildVoteCalls` (`@/lib/voteCalls`), `useSendCalls`, `useWaitForCallsStatus` (wagmi)
 
 ### Task 4: Get paid — x402 on `app/api/markets/route.ts`
 
@@ -77,7 +77,7 @@ Wrap your Task 1 handler with `withX402` so unpaid requests get `402 Payment Req
 
 ### Task 5: Buy it with an agent
 
-Deploy to Vercel first (the agent needs an HTTPS URL). In Toshi, connect the Coinbase Wallet MCP and ask the agent to buy your endpoint with a `maxPayment` of 0.01 USDC. Backup: `npm run buy -- https://<app>.vercel.app/api/markets` with `BUYER_PRIVATE_KEY` set.
+Deploy to Vercel first (the agent needs an HTTPS URL). In Toshi, connect the Coinbase Wallet MCP and ask the agent to buy your endpoint with a `maxPayment` of 0.01 USDC. Backup: `npm run buy -- https://<app>.vercel.app/api/markets --max-payment 0.005` (refuses: the price is above the cap), then without `--max-payment` (pays $0.01), with `BUYER_PRIVATE_KEY` set.
 
 ## Tech Stack
 

@@ -26,14 +26,16 @@ interface MarketCardProps {
  *   - Delete the `data-market-stub` attribute once real data shows.
  *
  * Task 3 (voting):
- *   - Replace the placeholder buttons with Vote Yes / Vote No buttons that send
- *     `approve` + `vote` as one batch with wagmi's `useSendCalls`
- *     (`experimental_fallback: true`), tracked with `useWaitForCallsStatus`.
- *     Keep `data-vote-button` on both buttons.
+ *   - `buildVoteCalls(pod, side)` in '@/lib/voteCalls' already encodes the two calls
+ *     (approve, then vote). Send them as one batch with wagmi's `useSendCalls`
+ *     (`experimental_fallback: true`), track the batch with `useWaitForCallsStatus`,
+ *     and call `refetch` from your `useReadContracts` once it succeeds.
+ *   - Replace the placeholder buttons with Vote Yes / Vote No buttons. Keep
+ *     `data-vote-button` on both, and keep them disabled until the market has loaded
+ *     and while a batch is in flight.
  *
  * Imports you'll need: `useReadContracts`, `useSendCalls`, `useWaitForCallsStatus` from 'wagmi';
- * `encodeFunctionData`, `parseEther` from 'viem'; `PredictionMarketABI`, `ERC20ABI` from
- * '@/lib/contracts'.
+ * `PredictionMarketABI` from '@/lib/contracts'; `buildVoteCalls` from '@/lib/voteCalls'.
  */
 export function MarketCard({ pod, account }: MarketCardProps) {
   // TODO (Task 2): read these from the chain with one useReadContracts call.

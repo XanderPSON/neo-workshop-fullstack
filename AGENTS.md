@@ -22,6 +22,8 @@ The app aggregates prediction markets from an entire pod (group of participants)
 
 Every dependency in `package.json` is pinned to an exact version, and `package-lock.json` pins the transitive tree. Install with `npm ci` so you get exactly the tested versions. Do not add or upgrade dependencies during the workshop.
 
+`package.json` also has `"overrides": { "zod": "4.6.7" }`. The `@x402/*` 2.28.0 packages declare `zod ^3`, and every zod 3.x release is affected by GHSA-mrhx-c7xc-m3w5 (memory exhaustion on oversized constrained collections, fixed in 4.6.6). The x402 code only uses zod APIs that behave the same in zod 4, and the override was verified with `npm test`, `npm run build`, a local `402`, and a paid request that reached facilitator verification. `npm audit` reports 0 vulnerabilities. Remove the override once `@x402/*` depends on a patched zod.
+
 ## Commands
 
 ```
@@ -30,7 +32,7 @@ npm run dev          # Dev server → http://localhost:3000
 npm run build        # Production build
 npm run lint         # ESLint
 npm test             # Run tests (vitest); green before AND after you finish the tasks
-npm run buy -- <url> # Backup buyer: pay an x402 endpoint from BUYER_PRIVATE_KEY
+npm run buy -- <url> [--max-payment 0.005]  # Backup buyer: pay an x402 endpoint from BUYER_PRIVATE_KEY (cap defaults to $0.01, never higher)
 ```
 
 ## Project Structure
@@ -51,10 +53,11 @@ components/
 lib/
 ├── contracts.ts            # ABI definitions (PredictionMarketABI, ERC20ABI)
 ├── podConfig.ts            # Pod member addresses (participant fills this in)
+├── voteCalls.ts            # buildVoteCalls(pod, side): the encoded approve + vote pair for Task 3 (provided)
 ├── wagmi.ts                # Wagmi config: Base Sepolia, Base Account + browser wallet connectors
 └── x402.ts                 # x402 resource server (public testnet facilitator) + payTo() helper
 scripts/
-└── buy.ts                  # Backup x402 buyer with a $0.01 spend cap
+└── buy.ts                  # Backup x402 buyer with an enforced spend cap (--max-payment, default and ceiling $0.01)
 solutions/                  # RESTRICTED — see below
 ```
 
@@ -78,9 +81,11 @@ The layout (question, odds bar, pool sizes, status, placeholder buttons) is prov
 
 ### Task 3: Transactions — Vote buttons in `components/MarketCard.tsx`
 
-**What to build:** Two call arrays (yes/no) that each batch `approve(marketAddress, amount)` on the token contract followed by `vote(marketId, side, amount)` on the market contract. Send them with `useSendCalls` (pass `experimental_fallback: true` so wallets without batching send two transactions), track them with `useWaitForCallsStatus`, and give each vote button a `data-vote-button` attribute.
+**Provided:** `buildVoteCalls(pod, side)` in `lib/voteCalls.ts` returns the two encoded calls in order: `approve(marketAddress, 10 tokens)` on the token contract, then `vote(0, side, 10 tokens)` on the market contract.
 
-**Key APIs:** `encodeFunctionData`, `parseEther` (viem), `useSendCalls`, `useWaitForCallsStatus` (wagmi)
+**What to build:** Send `buildVoteCalls(pod, true|false)` with `useSendCalls` (pass `experimental_fallback: true` so wallets without batching send two transactions), track the batch with `useWaitForCallsStatus`, call the `useReadContracts` `refetch` once it succeeds, and give each vote button a `data-vote-button` attribute. Buttons stay disabled until the market has loaded and while a batch is in flight.
+
+**Key APIs:** `buildVoteCalls` (`@/lib/voteCalls`), `useSendCalls`, `useWaitForCallsStatus` (wagmi)
 
 ### Task 4: Get paid — gate `app/api/markets/route.ts` with x402
 
@@ -92,14 +97,14 @@ The layout (question, odds bar, pool sizes, status, placeholder buttons) is prov
 
 ### Task 5: Buy it with an agent
 
-Not code in this repo. In Toshi, connect the Coinbase Wallet MCP and ask the agent to fetch the deployed HTTPS URL with `initiate_x402_request` and a `maxPayment` of 0.01, approve in the wallet, then summarize the markets. Backup path: `npm run buy -- https://<app>.vercel.app/api/markets`.
+Not code in this repo. In Toshi, connect the Coinbase Wallet MCP and ask the agent to fetch the deployed HTTPS URL with `initiate_x402_request` and a `maxPayment` of 0.01, approve in the wallet, then summarize the markets. Backup path: `npm run buy -- https://<app>.vercel.app/api/markets --max-payment 0.005` (must refuse), then the same command without `--max-payment` (pays $0.01).
 
 ## Key Patterns
 
 - **Server-side reads via Viem**: `createPublicClient` + `readContract` for the API route. No wallet needed — this is read-only.
 - **Client-side reads via Wagmi**: `useReadContracts` batches multiple contract calls into a single multicall RPC request. Each result maps to a Solidity struct: `[question, yesPool, noPool, resolved, outcome]`
 - **Batched approve + vote**: Voting requires two calls in sequence — `approve(marketAddress, amount)` on the token, then `vote(marketId, side, amount)` on the market. `useSendCalls` sends both; smart wallets show one approval.
-- **`encodeFunctionData`**: Use Viem's `encodeFunctionData` to encode each call's `data`.
+- **`encodeFunctionData`**: `lib/voteCalls.ts` uses Viem's `encodeFunctionData` to encode each call's `data`.
 - **x402**: the server answers unpaid requests with 402 and machine-readable payment requirements; the client signs a USDC transfer authorization and retries; the facilitator verifies and settles onchain. What you sell is aggregation and delivery, not secrecy: the contract state is public.
 - **Spend caps are the guardrail**: buyers enforce a maximum payment in code or wallet settings (`maxPayment`, `spendControls`). A prompt is not a security boundary.
 

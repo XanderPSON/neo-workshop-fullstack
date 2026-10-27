@@ -2,11 +2,12 @@
 
 import { useReadContracts, useSendCalls, useWaitForCallsStatus } from 'wagmi';
 import type { useConnection } from 'wagmi';
-import { formatEther, encodeFunctionData, parseEther } from 'viem';
-import { useEffect } from 'react';
+import { formatEther } from 'viem';
+import { useEffect, useState } from 'react';
 
 import type { PodMarket } from '@/lib/podConfig';
-import { PredictionMarketABI, ERC20ABI } from '@/lib/contracts';
+import { PredictionMarketABI } from '@/lib/contracts';
+import { buildVoteCalls } from '@/lib/voteCalls';
 
 interface MarketCardProps {
   pod: PodMarket;
@@ -55,57 +56,43 @@ export function MarketCard({ pod, account }: MarketCardProps) {
     totalPool > 0n ? Number((yesPool * 100n) / totalPool) : 50;
   const noPercent = 100 - yesPercent;
 
+  // Vote only on a market you've actually read: no data, no buttons.
+  const marketReady = !!marketData && !readFailed;
+
   // One click = two calls: approve the market to pull 10 tokens, then vote.
-  // Smart wallets (Base Account) batch them into one approval; other wallets
-  // fall back to two transactions (experimental_fallback).
+  // lib/voteCalls.ts encodes them. Smart wallets (Base Account) batch them into one
+  // approval; other wallets fall back to two transactions (experimental_fallback).
   const { mutate: sendCalls, data: sent, isPending, error, reset } = useSendCalls();
-  const { data: status, error: statusError } = useWaitForCallsStatus({ id: sent?.id, query: { enabled: !!sent?.id } });
+  const {
+    data: status,
+    error: statusError,
+    refetch: refetchStatus,
+    isFetching: isCheckingStatus,
+  } = useWaitForCallsStatus({ id: sent?.id, query: { enabled: !!sent?.id } });
   const confirmed = status?.status === 'success';
-  // Busy from the signature prompt until the batch lands (or fails), not just while
-  // the wallet popup is open. Re-enabling earlier invites double votes.
-  const busy = isPending || (!!sent?.id && !error && !statusError && (!status || status.status === 'pending'));
+  const reverted = status?.status === 'failure';
+
+  // Your stake when you clicked. If tracking fails, a bigger stake on re-read proves the vote landed.
+  const [stakeAtSend, setStakeAtSend] = useState<bigint | null>(null);
+  const landedByStake = !!sent?.id && stakeAtSend !== null && userStake > stakeAtSend;
+  // Sent, but we can't tell whether it landed: keep the buttons locked until we can.
+  const uncertain = !!sent?.id && !!statusError && !landedByStake;
+
+  // Busy from the signature prompt until the batch is known to have landed or failed,
+  // not just while the wallet popup is open. Re-enabling earlier invites double votes.
+  const busy =
+    isPending ||
+    (!!sent?.id && !error && !confirmed && !reverted && !landedByStake);
   useEffect(() => {
     // Pools changed onchain: re-read them once the batch confirms.
     if (confirmed) void refetch();
   }, [confirmed, refetch]);
 
-  const voteYesCalls = [
-    {
-      to: pod.tokenAddress,
-      data: encodeFunctionData({
-        abi: ERC20ABI,
-        functionName: 'approve',
-        args: [pod.marketAddress, parseEther('10')],
-      }),
-    },
-    {
-      to: pod.marketAddress,
-      data: encodeFunctionData({
-        abi: PredictionMarketABI,
-        functionName: 'vote',
-        args: [0n, true, parseEther('10')],
-      }),
-    },
-  ];
-
-  const voteNoCalls = [
-    {
-      to: pod.tokenAddress,
-      data: encodeFunctionData({
-        abi: ERC20ABI,
-        functionName: 'approve',
-        args: [pod.marketAddress, parseEther('10')],
-      }),
-    },
-    {
-      to: pod.marketAddress,
-      data: encodeFunctionData({
-        abi: PredictionMarketABI,
-        functionName: 'vote',
-        args: [0n, false, parseEther('10')],
-      }),
-    },
-  ];
+  const vote = (side: boolean) => {
+    reset();
+    setStakeAtSend(userStake);
+    sendCalls({ calls: buildVoteCalls(pod, side), experimental_fallback: true });
+  };
 
   return (
     <div className="border border-gray-700 rounded-xl p-5 flex flex-col space-y-4 bg-gray-900/50">
@@ -164,16 +151,16 @@ export function MarketCard({ pod, account }: MarketCardProps) {
           <div className="flex gap-3">
             <button
               data-vote-button
-              disabled={busy}
-              onClick={() => { reset(); sendCalls({ calls: voteYesCalls, experimental_fallback: true }); }}
+              disabled={busy || !marketReady}
+              onClick={() => vote(true)}
               className="flex-1 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50"
             >
               Vote Yes (10 Tokens)
             </button>
             <button
               data-vote-button
-              disabled={busy}
-              onClick={() => { reset(); sendCalls({ calls: voteNoCalls, experimental_fallback: true }); }}
+              disabled={busy || !marketReady}
+              onClick={() => vote(false)}
               className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
             >
               Vote No (10 Tokens)
@@ -181,11 +168,29 @@ export function MarketCard({ pod, account }: MarketCardProps) {
           </div>
           <div className="text-center text-xs text-gray-400 min-h-4">
             {isPending && 'Approve in your wallet...'}
-            {sent?.id && !status && 'Submitted, waiting for Base Sepolia...'}
+            {sent?.id && !status && !statusError && !landedByStake && 'Submitted, waiting for Base Sepolia...'}
             {status?.status === 'pending' && 'Waiting for Base Sepolia...'}
             {confirmed && 'Vote confirmed onchain ✅'}
-            {status?.status === 'failure' && 'Transaction reverted ❌'}
-            {statusError && <span className="text-red-400">Could not track this batch. Check BaseScan, then refresh.</span>}
+            {reverted && 'Transaction reverted ❌'}
+            {landedByStake && !confirmed && 'Vote landed: your stake went up ✅'}
+            {uncertain && (
+              <span className="text-red-400">
+                Could not track this batch, so voting stays locked. Check your address on BaseScan,
+                then{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refetchStatus();
+                    void refetch();
+                  }}
+                  disabled={isCheckingStatus || isFetching}
+                  className="underline disabled:opacity-50"
+                >
+                  {isCheckingStatus || isFetching ? 'checking...' : 'check again'}
+                </button>
+                .
+              </span>
+            )}
             {error && <span className="text-red-400">{error.message.split('\n')[0]}</span>}
           </div>
         </>
