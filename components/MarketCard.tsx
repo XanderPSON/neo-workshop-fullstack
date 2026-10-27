@@ -1,11 +1,11 @@
 'use client';
 
-import type { useAccount } from 'wagmi';
+import type { useConnection } from 'wagmi';
 import type { PodMarket } from '@/lib/podConfig';
 
 interface MarketCardProps {
   pod: PodMarket;
-  account: ReturnType<typeof useAccount>;
+  account: ReturnType<typeof useConnection>;
 }
 
 /**
@@ -17,13 +17,12 @@ interface MarketCardProps {
  *    from wagmi — call `markets(0)` on the pod's market contract
  * 2. Fetch the user's cumulative stake — call `amountVoted(0, address)`
  * 3. Display the market question, an odds bar (green/red), pool sizes, and user's stake
- * 4. Show vote buttons that batch `approve` + `vote` using OnchainKit's <Transaction>
- *    (users can vote multiple times!)
+ * 4. Show vote buttons that send `approve` + `vote` as one batch with wagmi's
+ *    `useSendCalls` (users can vote multiple times!). Give each button `data-vote-button`.
  *
  * Available imports you'll need:
- *   - `useReadContracts` from 'wagmi'
+ *   - `useReadContracts`, `useSendCalls`, `useWaitForCallsStatus` from 'wagmi'
  *   - `formatEther, encodeFunctionData, parseEther` from 'viem'
- *   - `Transaction, TransactionButton, TransactionStatus` from '@coinbase/onchainkit/transaction'
  *   - `PredictionMarketABI, ERC20ABI` from '@/lib/contracts'
  *
  * See the Part 3 instructions for step-by-step guidance.

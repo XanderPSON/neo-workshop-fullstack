@@ -3,29 +3,13 @@ import { render, screen } from '@testing-library/react';
 import App from './page';
 
 vi.mock('wagmi', () => ({
-  useAccount: () => ({ address: undefined }),
+  useConnection: () => ({ address: undefined, isConnected: false }),
   useChainId: () => 84532,
   useSwitchChain: () => ({ switchChain: vi.fn() }),
 }));
 
-vi.mock('@coinbase/onchainkit', () => ({
-  OnchainKitProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-vi.mock('@coinbase/onchainkit/identity', () => ({
-  Address: () => null,
-  Avatar: () => null,
-  EthBalance: () => null,
-  Identity: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Name: () => null,
-}));
-
-vi.mock('@coinbase/onchainkit/wallet', () => ({
-  ConnectWallet: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Wallet: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  WalletDropdown: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  WalletDropdownDisconnect: () => null,
-  WalletDropdownLink: () => null,
+vi.mock('@/components/WalletBar', () => ({
+  WalletBar: () => null,
 }));
 
 describe('App (empty POD_MARKETS)', () => {

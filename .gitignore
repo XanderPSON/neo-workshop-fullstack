@@ -2,3 +2,7 @@
 !.env.local.example
 node_modules
 .next
+
+# local git worktrees
+.worktrees/
+tsconfig.tsbuildinfo

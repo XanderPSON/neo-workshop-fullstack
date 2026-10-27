@@ -1,20 +1,7 @@
 'use client';
 
-import {
-  Address,
-  Avatar,
-  EthBalance,
-  Identity,
-  Name,
-} from '@coinbase/onchainkit/identity';
-import {
-  ConnectWallet,
-  Wallet,
-  WalletDropdown,
-  WalletDropdownDisconnect,
-  WalletDropdownLink,
-} from '@coinbase/onchainkit/wallet';
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { WalletBar } from '@/components/WalletBar';
+import { useConnection, useChainId, useSwitchChain } from 'wagmi';
 import { baseSepolia } from 'viem/chains';
 import { useEffect, useState } from 'react';
 
@@ -33,7 +20,7 @@ function ChecklistItem({ done, children }: { done: boolean; children: React.Reac
 }
 
 export default function App() {
-  const account = useAccount();
+  const account = useConnection();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
 
@@ -59,7 +46,7 @@ export default function App() {
     if (!podConfigDone) return;
     const timer = setTimeout(() => {
       setMarketCardDone(!document.querySelector('[data-market-stub]'));
-      setTransactionDone(!!document.querySelector('[data-testid*="ockTransaction"]'));
+      setTransactionDone(!!document.querySelector('[data-vote-button]'));
     }, 500);
     return () => clearTimeout(timer);
   }, [podConfigDone]);
@@ -85,7 +72,7 @@ export default function App() {
       </ChecklistItem>
       <ChecklistItem done={transactionDone}>
         Wire up voting with{' '}
-        <code className="bg-gray-800 px-2 py-0.5 rounded text-sm">&lt;Transaction&gt;</code>
+        <code className="bg-gray-800 px-2 py-0.5 rounded text-sm">useSendCalls</code>
       </ChecklistItem>
     </>
   );
@@ -110,29 +97,7 @@ export default function App() {
     <div className="flex flex-col items-center min-h-screen font-sans dark:bg-background dark:text-white bg-white text-black p-8">
       {/* Wallet connection */}
       <div className="absolute top-4 right-4">
-        <Wallet>
-          <ConnectWallet>
-            <Avatar className="h-6 w-6" />
-            <Name />
-          </ConnectWallet>
-          <WalletDropdown>
-            <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-              <Avatar />
-              <Name />
-              <Address />
-              <EthBalance />
-            </Identity>
-            <WalletDropdownLink
-              icon="wallet"
-              href="https://keys.coinbase.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Wallet
-            </WalletDropdownLink>
-            <WalletDropdownDisconnect />
-          </WalletDropdown>
-        </Wallet>
+        <WalletBar />
       </div>
 
       <h1 className="text-3xl font-bold mb-6 mt-4">🔮 Prediction Market Aggregator</h1>
