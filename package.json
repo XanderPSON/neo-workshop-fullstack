@@ -6,31 +6,43 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "buy": "tsx scripts/buy.ts",
+    "preflight": "tsx scripts/preflight.ts"
   },
   "dependencies": {
-    "@coinbase/onchainkit": "latest",
-    "next": "14.2.35",
-    "react": "^18",
-    "react-dom": "^18",
-    "viem": "^2.17.4",
-    "wagmi": "^2.11.0"
+    "@base-org/account": "2.5.13",
+    "@tanstack/react-query": "5.105.0",
+    "@x402/core": "2.28.0",
+    "@x402/evm": "2.28.0",
+    "@x402/fetch": "2.28.0",
+    "@x402/next": "2.28.0",
+    "@x402/svm": "2.28.0",
+    "next": "16.4.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "viem": "2.57.12",
+    "wagmi": "3.7.9"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "@vitejs/plugin-react": "^5.1.4",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.15",
-    "jsdom": "^28.1.0",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5",
-    "vitest": "^4.0.18"
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "22.18.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.2.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.3",
+    "jsdom": "28.1.0",
+    "postcss": "8.5.32",
+    "tailwindcss": "3.4.19",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
