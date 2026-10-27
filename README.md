@@ -13,7 +13,7 @@ This app is designed to show **all markets** from your pod, not just yours. You 
 1. **Install dependencies**
 
     ```bash
-    npm install
+    npm ci
     ```
 
 2. **Configure environment**

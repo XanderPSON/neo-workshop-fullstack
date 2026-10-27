@@ -35,20 +35,46 @@ export default function App() {
     }
   }, [chainId, switchChain]);
 
+  // Re-check the API route every few seconds until it answers, so saving
+  // route.ts ticks the box without a reload. 402 counts: the route is built
+  // and gated with x402 (Task 4).
   useEffect(() => {
-    if (!podConfigDone) return;
-    fetch('/api/markets')
-      .then((res) => setApiRouteDone(res.ok))
-      .catch(() => setApiRouteDone(false));
-  }, [podConfigDone]);
+    if (!podConfigDone || apiRouteDone) return;
+    let cancelled = false;
+    const check = () => {
+      fetch('/api/markets')
+        .then((res) => {
+          if (!cancelled) setApiRouteDone(res.ok || res.status === 402);
+        })
+        .catch(() => {
+          if (!cancelled) setApiRouteDone(false);
+        });
+    };
+    check();
+    const timer = setInterval(check, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [podConfigDone, apiRouteDone]);
 
+  // Watch the DOM instead of checking it once: cards render their vote buttons
+  // only after reads succeed and a wallet connects, which can happen any time.
   useEffect(() => {
     if (!podConfigDone) return;
-    const timer = setTimeout(() => {
+    const update = () => {
       setMarketCardDone(!document.querySelector('[data-market-stub]'));
       setTransactionDone(!!document.querySelector('[data-vote-button]'));
-    }, 500);
-    return () => clearTimeout(timer);
+    };
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-market-stub', 'data-vote-button'],
+    });
+    return () => observer.disconnect();
   }, [podConfigDone]);
 
   const allDone = podConfigDone && apiRouteDone && marketCardDone && transactionDone;

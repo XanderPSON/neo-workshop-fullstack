@@ -30,7 +30,7 @@ export function MarketCard({ pod, account }: MarketCardProps) {
       } as const)
     : null;
 
-  const { data, refetch } = useReadContracts({
+  const { data, refetch, error: readError, isFetching } = useReadContracts({
     contracts: amountVotedContract
       ? [marketContract, amountVotedContract]
       : [marketContract],
@@ -41,7 +41,10 @@ export function MarketCard({ pod, account }: MarketCardProps) {
     | [string, bigint, bigint, boolean, boolean]
     | undefined;
 
-  const question = marketData?.[0] ?? 'Loading...';
+  // A bad address or a dead RPC shows up here, not as "Loading..." forever.
+  // Transport errors land in readError; a single failed call has status 'failure'.
+  const readFailed = !!readError || marketResult?.status === 'failure';
+  const question = marketData?.[0] ?? (readFailed ? 'Could not read this market' : 'Loading...');
   const yesPool = marketData?.[1] ?? 0n;
   const noPool = marketData?.[2] ?? 0n;
   const resolved = marketData?.[3] ?? false;
@@ -56,8 +59,11 @@ export function MarketCard({ pod, account }: MarketCardProps) {
   // Smart wallets (Base Account) batch them into one approval; other wallets
   // fall back to two transactions (experimental_fallback).
   const { mutate: sendCalls, data: sent, isPending, error, reset } = useSendCalls();
-  const { data: status } = useWaitForCallsStatus({ id: sent?.id, query: { enabled: !!sent?.id } });
+  const { data: status, error: statusError } = useWaitForCallsStatus({ id: sent?.id, query: { enabled: !!sent?.id } });
   const confirmed = status?.status === 'success';
+  // Busy from the signature prompt until the batch lands (or fails), not just while
+  // the wallet popup is open. Re-enabling earlier invites double votes.
+  const busy = isPending || (!!sent?.id && !error && !statusError && (!status || status.status === 'pending'));
   useEffect(() => {
     // Pools changed onchain: re-read them once the batch confirms.
     if (confirmed) void refetch();
@@ -107,6 +113,22 @@ export function MarketCard({ pod, account }: MarketCardProps) {
 
       <div className="text-lg font-semibold">{question}</div>
 
+      {readFailed && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/40 bg-red-900/20 px-3 py-2 text-xs text-red-300">
+          <span>
+            Read failed. Check this market address in lib/podConfig.ts, then retry.
+          </span>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="rounded-md border border-red-400/50 px-2 py-1 font-medium hover:bg-red-500/20 disabled:opacity-50"
+          >
+            {isFetching ? 'Retrying...' : 'Retry'}
+          </button>
+        </div>
+      )}
+
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-green-400">Yes {yesPercent}%</span>
@@ -142,7 +164,7 @@ export function MarketCard({ pod, account }: MarketCardProps) {
           <div className="flex gap-3">
             <button
               data-vote-button
-              disabled={isPending}
+              disabled={busy}
               onClick={() => { reset(); sendCalls({ calls: voteYesCalls, experimental_fallback: true }); }}
               className="flex-1 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50"
             >
@@ -150,7 +172,7 @@ export function MarketCard({ pod, account }: MarketCardProps) {
             </button>
             <button
               data-vote-button
-              disabled={isPending}
+              disabled={busy}
               onClick={() => { reset(); sendCalls({ calls: voteNoCalls, experimental_fallback: true }); }}
               className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
             >
@@ -163,6 +185,7 @@ export function MarketCard({ pod, account }: MarketCardProps) {
             {status?.status === 'pending' && 'Waiting for Base Sepolia...'}
             {confirmed && 'Vote confirmed onchain ✅'}
             {status?.status === 'failure' && 'Transaction reverted ❌'}
+            {statusError && <span className="text-red-400">Could not track this batch. Check BaseScan, then refresh.</span>}
             {error && <span className="text-red-400">{error.message.split('\n')[0]}</span>}
           </div>
         </>

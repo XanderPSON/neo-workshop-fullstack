@@ -20,16 +20,16 @@ The app aggregates prediction markets from an entire pod (group of participants)
 - Vitest (testing)
 - Target chain: Base Sepolia (`eip155:84532`). Testnet only.
 
-All dependency versions are pinned exactly in `package.json`. Do not upgrade them during the workshop.
+Every dependency in `package.json` is pinned to an exact version, and `package-lock.json` pins the transitive tree. Install with `npm ci` so you get exactly the tested versions. Do not add or upgrade dependencies during the workshop.
 
 ## Commands
 
 ```
-npm install          # Install dependencies
+npm ci               # Install the exact locked dependencies
 npm run dev          # Dev server → http://localhost:3000
 npm run build        # Production build
 npm run lint         # ESLint
-npm test             # Run tests (vitest)
+npm test             # Run tests (vitest); green before AND after you finish the tasks
 npm run buy -- <url> # Backup buyer: pay an x402 endpoint from BUYER_PRIVATE_KEY
 ```
 
@@ -39,14 +39,14 @@ npm run buy -- <url> # Backup buyer: pay an x402 endpoint from BUYER_PRIVATE_KEY
 app/
 ├── layout.tsx              # Root layout
 ├── providers.tsx           # WagmiProvider + React Query
-├── page.tsx                # Main page — wallet bar + MarketCard grid (scaffold, no TODOs)
-├── page.test.tsx           # Tests for the main page
+├── page.tsx                # Main page — wallet bar, reactive progress checklist, MarketCard grid (scaffold, no TODOs)
+├── page.test.tsx           # Tests for the main page (MarketCard and podConfig mocked)
 ├── globals.css             # Tailwind base styles
 └── api/
     └── markets/
         └── route.ts        # API route stub — participant builds this (Task 1), then gates it (Task 4)
 components/
-├── MarketCard.tsx          # Market card stub — participant builds this (Tasks 2 & 3)
+├── MarketCard.tsx          # Market card layout with placeholder data — participant wires reads + odds (Task 2) and voting (Task 3)
 └── WalletBar.tsx           # Connect / disconnect, address, ETH balance (provided)
 lib/
 ├── contracts.ts            # ABI definitions (PredictionMarketABI, ERC20ABI)
@@ -70,9 +70,9 @@ The stub returns a 501. Participants replace it with a real API route that reads
 
 ### Task 2: Frontend — `components/MarketCard.tsx`
 
-The stub shows a "not implemented yet" placeholder. Participants replace it with a component that displays live market data.
+The layout (question, odds bar, pool sizes, status, placeholder buttons) is provided with placeholder values and a `data-market-stub` attribute. Participants replace only the placeholder values and the odds math.
 
-**What to build:** Use Wagmi's `useReadContracts` hook to batch-fetch `markets(0)` and `amountVoted(0, address)` from the pod's market contract. Display the question, an odds bar (green/red), pool sizes, and the user's stake.
+**What to build:** Use Wagmi's `useReadContracts` hook to batch-fetch `markets(0)` and `amountVoted(0, address)` from the pod's market contract, feed the results into the provided layout, compute the odds in BigInt (50/50 when both pools are zero), and remove `data-market-stub`.
 
 **Key APIs:** `useReadContracts` (wagmi), `formatEther` (viem), `PredictionMarketABI` (`@/lib/contracts`)
 
