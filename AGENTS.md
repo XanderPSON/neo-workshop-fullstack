@@ -22,7 +22,7 @@ The app aggregates prediction markets from an entire pod (group of participants)
 
 Every dependency in `package.json` is pinned to an exact version, and `package-lock.json` pins the transitive tree. Install with `npm ci` so you get exactly the tested versions. Do not add or upgrade dependencies during the workshop.
 
-`package.json` also has `"overrides": { "zod": "4.6.7" }`. The `@x402/*` 2.28.0 packages declare `zod ^3`, and every zod 3.x release is affected by GHSA-mrhx-c7xc-m3w5 (memory exhaustion on oversized constrained collections, fixed in 4.6.6). The x402 code only uses zod APIs that behave the same in zod 4, and the override was verified with `npm test`, `npm run build`, a local `402`, and a paid request that reached facilitator verification. `npm audit` reports 0 vulnerabilities. Remove the override once `@x402/*` depends on a patched zod.
+`npm audit` reports high-severity findings from one transitive advisory (GHSA-mrhx-c7xc-m3w5, zod 3.x memory exhaustion) pulled in by `@x402/*` 2.28.0, which declares `zod ^3`. We deliberately don't override zod to 4: that swaps a major version under the payment library, and a testnet workshop server is not worth that risk. Revisit when `@x402/*` ships a patched zod.
 
 ## Commands
 
