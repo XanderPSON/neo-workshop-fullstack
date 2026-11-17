@@ -24,6 +24,10 @@ Every dependency in `package.json` is pinned to an exact version, and `package-l
 
 `npm audit` reports high-severity findings from one transitive advisory (GHSA-mrhx-c7xc-m3w5, zod 3.x memory exhaustion) pulled in by `@x402/*` 2.28.0, which declares `zod ^3`. We deliberately don't override zod to 4: that swaps a major version under the payment library, and a testnet workshop server is not worth that risk. Revisit when `@x402/*` ships a patched zod.
 
+## AI testing and recovery
+
+Before coaching a learner, implementing a requested exercise, running local E2E, or diagnosing a failed/pending transaction, read [docs/AI-TESTING.md](docs/AI-TESTING.md). It defines progress-preserving recovery and the isolated instructor harness; a local pass is not Wallet MCP or Base Sepolia completion.
+
 ## Commands
 
 ```
