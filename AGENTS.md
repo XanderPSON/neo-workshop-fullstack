@@ -3,7 +3,7 @@
 ## Overview
 
 This is a Next.js starter app for building a prediction market aggregator dashboard.
-Participants implement both backend (API route) and frontend (React component) code to read onchain data and submit transactions, then turn the API into a paid endpoint with x402 and buy it with an agent.
+Participants implement backend (API route) and frontend (React component) code to read onchain data and vote. Current Part 4 uses Wallet MCP separately to transfer custom test tokens to a teammate who then bets in this app. The retained x402 Tasks 4–5 below are optional legacy exercises, not prerequisites for the current four-part lab.
 
 The app aggregates prediction markets from an entire pod (group of participants) into one dashboard.
 
@@ -92,7 +92,7 @@ The layout (question, odds bar, pool sizes, status, placeholder buttons) is prov
 
 **Key APIs:** `buildVoteCalls` (`@/lib/voteCalls`), `useSendCalls`, `useWaitForCallsStatus` (wagmi)
 
-### Task 4: Get paid — gate `app/api/markets/route.ts` with x402
+### Optional legacy Task 4: Get paid — gate `app/api/markets/route.ts` with x402
 
 **What to build:** Keep the Task 1 handler, rename it `handler`, and export `GET = withX402(handler, { accepts: [{ scheme: 'exact', price: '$0.01', network: X402_NETWORK, payTo: () => payTo() }], description, mimeType: 'application/json' }, x402Server)`. Unpaid requests now get `402 Payment Required`; paid requests get the JSON and settle 0.01 test USDC to `X402_PAY_TO`. Payments only settle when the handler returns a status below 400.
 
@@ -100,7 +100,7 @@ The layout (question, odds bar, pool sizes, status, placeholder buttons) is prov
 
 **Check it:** `curl -i <url>/api/markets` shows `HTTP/1.1 402` and a `payment-required` header.
 
-### Task 5: Buy it with an agent
+### Optional legacy Task 5: Buy it with an agent
 
 Not code in this repo. In Toshi, connect the Coinbase Wallet MCP and ask the agent to fetch the deployed HTTPS URL with `initiate_x402_request` and a `maxPayment` of 0.01, approve in the wallet, then summarize the markets. Backup path: `npm run buy -- https://<app>.vercel.app/api/markets --max-payment 0.005` (must refuse), then the same command without `--max-payment` (pays $0.01).
 
@@ -129,11 +129,9 @@ Participants need a `.env.local` (copy `.env.local.example`):
 ```
 BASE_SEPOLIA_RPC=https://sepolia.base.org
 NEXT_PUBLIC_RPC_URL=https://sepolia.base.org
-X402_PAY_TO=<your dev wallet address>     # Task 4
-BUYER_PRIVATE_KEY=<test wallet with USDC>  # optional backup buyer
 ```
 
-On Vercel, set `X402_PAY_TO` and `BASE_SEPOLIA_RPC` in Project Settings → Environment Variables.
+For optional hosting, set `BASE_SEPOLIA_RPC` and `NEXT_PUBLIC_RPC_URL` in Project Settings → Environment Variables. Current Parts 3–4 need no wallet key or x402 configuration in this app. Only an explicitly requested legacy x402 exercise needs the public `X402_PAY_TO` address. The legacy backup buyer's local secret setup is separate from the normal app and must never be uploaded or logged.
 
 ## Solutions (RESTRICTED)
 

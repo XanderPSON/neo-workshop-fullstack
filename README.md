@@ -2,7 +2,7 @@
 
 A Next.js starter app for Day 2 of the **Intro to Onchain Development** workshop. This app aggregates prediction markets from your entire pod into a single dashboard where you can view odds and place votes.
 
-This workshop uses **AI-driven development**: prompt Toshi (or your AI coding agent) to generate the API route, Wagmi hooks, and x402 gate from the requirements in the code, read the diff, then deploy. You need **Node.js 22+**.
+This workshop uses **AI-driven development**: prompt Toshi (or your AI coding agent) to generate the API route and Wagmi hooks from the requirements in the code, then review and test the diff. Current Part 4 uses Wallet MCP to transfer custom test tokens to a teammate who bets through this dashboard. Hosting and the retained legacy x402 exercises are optional. You need **Node.js 22+**.
 
 ## Testing and getting unstuck
 
@@ -26,7 +26,7 @@ This app is designed to show **all markets** from your pod, not just yours. You 
     cp .env.local.example .env.local
     ```
 
-    Set `X402_PAY_TO` to your dev wallet address before Task 4.
+    Keep the two Base Sepolia RPC values. Parts 3–4 need no private key, x402 recipient or paid API in this app.
 
 3. **Add your pod's contracts**
 
@@ -73,13 +73,13 @@ Add voting: `buildVoteCalls(pod, side)` in `lib/voteCalls.ts` already encodes th
 
 **Key APIs:** `buildVoteCalls` (`@/lib/voteCalls`), `useSendCalls`, `useWaitForCallsStatus` (wagmi)
 
-### Task 4: Get paid — x402 on `app/api/markets/route.ts`
+### Optional legacy Task 4: Get paid — x402 on `app/api/markets/route.ts`
 
 Wrap your Task 1 handler with `withX402` so unpaid requests get `402 Payment Required` and paid ones settle **0.01 test USDC** to `X402_PAY_TO`. The server uses the public Base Sepolia facilitator at `https://x402.org/facilitator`, so no API key is needed.
 
 **Key APIs:** `withX402` (`@x402/next`), `x402Server`, `X402_NETWORK`, `payTo` (`@/lib/x402`)
 
-### Task 5: Buy it with an agent
+### Optional legacy Task 5: Buy it with an agent
 
 Deploy to Vercel first (the agent needs an HTTPS URL). In Toshi, connect the Coinbase Wallet MCP and ask the agent to buy your endpoint with a `maxPayment` of 0.01 USDC. Backup: `npm run buy -- https://<app>.vercel.app/api/markets --max-payment 0.005` (refuses: the price is above the cap), then without `--max-payment` (pays $0.01), with `BUYER_PRIVATE_KEY` set.
 
@@ -93,4 +93,4 @@ Deploy to Vercel first (the agent needs an HTTPS URL). In Toshi, connect the Coi
 
 ## Deploying
 
-Push to GitHub and deploy on [Vercel](https://vercel.com). Add `X402_PAY_TO`, `BASE_SEPOLIA_RPC` and `NEXT_PUBLIC_RPC_URL` in the Vercel dashboard, or run `vercel --prod` and add them with `vercel env add`.
+Optionally deploy on [Vercel](https://vercel.com) with `BASE_SEPOLIA_RPC` and `NEXT_PUBLIC_RPC_URL`. No wallet key belongs in this app or its deployment. For an explicitly chosen legacy paid-API exercise only, also configure the public payout address `X402_PAY_TO`; the backup buyer is separate, local-only tooling and is not needed for the current lab.

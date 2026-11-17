@@ -8,7 +8,7 @@ The current four-part lesson ends with a Wallet MCP custom-token transfer and a 
 
 ## Repeatable local rehearsal (instructor)
 
-Prerequisites: Node >=22, `npm ci` in this checkout, Foundry (`forge`, `anvil`) on PATH, and the matching smart-contracts checkout with its pinned `lib/forge-std` installed. Keep that checkout stable while taking the snapshot. No wallet, secrets, API keys or running chain are needed.
+Prerequisites: Node >=22, Python 3, `npm ci` in this checkout, Foundry (`forge`, `anvil`) on PATH, and the matching smart-contracts checkout with its pinned `lib/forge-std` installed. Keep that checkout stable while taking the snapshot. No wallet, secrets, API keys or running chain are needed.
 
 From the fullstack checkout:
 
@@ -18,7 +18,7 @@ npm run test:e2e -- --contracts /absolute/path/to/neo-workshop-smart-contracts
 
 Run the identical command twice to check fresh-state repeatability. Every run prints `Evidence: <temporary directory>`. Success requires exit 0, `passed: true` and `cleanup: true` in `report.json`. Failures exit nonzero and retain evidence too. The command runs the copied contracts' tests, app unit tests, lint, typecheck, an isolated production build, API and browser checks. The original learner TODOs and dummy pod config stay unchanged.
 
-The harness uses an instructor-completed disposable contract snapshot, not drop-in reference classes. It deploys the actual V1, token and V2 constructors, verifies cumulative V1 ETH stakes, then drives the real Next API and Wagmi browser reads. Browser clicks submit actual approve and vote transactions through an EIP-1193 synthetic provider, using unlocked accounts on a fresh loopback Anvil chain 31337. It checks successful receipts, transaction targets/selectors, refreshed pools, odds, cumulative stakes, token balances and allowance. A local synthetic token transfer funds a second browser wallet's bet. Wrong-network refusal, missing allowance, insufficient balance and a resolved market must reject safely.
+The runner calls the contracts checkout's `python3 script/prepare-instructor.py <fresh destination>` helper. This explicitly authorized instructor mode completes only copied exercise seams, preserving starter constructors; it may consult reference code in that disposable fixture. It deploys V1, token and V2, verifies cumulative V1 ETH stakes, then drives the real Next API and Wagmi browser reads. Browser clicks submit actual approve and vote transactions through an EIP-1193 synthetic provider on a fresh loopback Anvil chain 31337. It checks successful receipts, transaction targets/selectors, refreshed pools, odds, stakes, balances and allowance. A local synthetic token transfer funds a second browser wallet's bet. Wrong-network voting is disabled; missing allowance, insufficient balance and a resolved market must reject safely.
 
 Only copied files get completed or switched from Base Sepolia to Anvil. There is no canonical Multicall3 on the local chain, so Wagmi's real individual-read fallback is exercised. Every browser context starts fresh; browser network access is limited to the owned app and RPC. This tests the non-atomic two-transaction fallback, not a smart-wallet batch.
 
