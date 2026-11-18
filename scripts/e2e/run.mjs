@@ -225,7 +225,7 @@ try {
   browser = await chromium.launch({ headless: true, handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false });
   const browserHashes = [];
   const switches = [];
-  async function pageFor(account, wrongNetwork = false) {
+  async function pageFor(account, wrongNetwork = false, refuseFirstSwitch = false) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     // Deny browser egress; only this app and its owned chain are reachable.
     await context.route('**/*', (route) => {
@@ -243,8 +243,9 @@ try {
       return value;
     });
     await context.exposeBinding('recordSwitch', (_, id) => switches.push(id));
-    await context.addInitScript(({ account, wrongNetwork }) => {
+    await context.addInitScript(({ account, wrongNetwork, refuseFirstSwitch }) => {
       let chainId = wrongNetwork ? '0x1' : '0x7a69';
+      let refuseSwitch = refuseFirstSwitch;
       const listeners = {};
       window.__requests = [];
       function assertLocalChain(id) { if (id !== '0x7a69') throw new Error('Synthetic provider only permits the local chain'); }
@@ -257,6 +258,7 @@ try {
           if (method === 'eth_chainId') return chainId;
           if (method === 'wallet_switchEthereumChain') {
             await window.recordSwitch(params[0].chainId);
+            if (refuseSwitch) { refuseSwitch = false; throw Object.assign(new Error('User rejected the request.'), { code: 4001 }); }
             assertLocalChain(params[0].chainId);
             chainId = params[0].chainId;
             for (const cb of listeners.chainChanged ?? []) cb(chainId);
@@ -267,34 +269,49 @@ try {
           return window.localRpc(method, params);
         },
       };
-    }, { account, wrongNetwork });
+    }, { account, wrongNetwork, refuseFirstSwitch });
     return { context, page: await context.newPage() };
   }
   async function text(page, value) { await page.getByText(value, { exact: true }).waitFor({ state: 'visible', timeout: 30000 }); }
-  await check('Instructor chain guard disables settled reads on wrong chain and enables same-page local-chain control', async () => {
+  await check('Starter switches a wrong-network wallet to the app chain on connect, with no sends', async () => {
+    switches.length = 0;
     const { context, page } = await pageFor(voter, true);
     await page.goto(url);
     await text(page, 'Will local E2E pass?');
     await page.getByRole('button', { name: 'Browser wallet', exact: true }).click();
     await page.waitForFunction(() => document.body.textContent.includes('Disconnect'));
-    await page.locator('[data-vote-button]').first().waitFor();
-    assert.equal(await page.locator('[data-vote-button]').count(), 2);
-    await page.locator('[data-connected-reads-ready="true"]').waitFor();
-    await text(page, 'Will local E2E pass?');
-    assert.equal(await page.locator('[data-market-stub]').count(), 0);
-    assert.equal(await page.getByText('Connect wallet to vote', { exact: true }).count(), 0);
-    for (const button of await page.locator('[data-vote-button]').all()) assert.equal(await button.isDisabled(), true);
-    assert.equal(browserHashes.length, 0);
-    assert.equal(await page.evaluate(() => window.ethereum.request({ method: 'eth_chainId' })), '0x1');
-    assert.deepEqual(switches, [], 'starter auto-switch is not certified');
-    await page.screenshot({ path: path.join(work, 'wrong-network.png') });
-    // Explicit test-wallet switch, not a claim about the starter auto-switch effect.
-    await page.evaluate(() => window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x7a69' }] }));
     await page.waitForFunction(() => [...document.querySelectorAll('[data-vote-button]')].length === 2 && [...document.querySelectorAll('[data-vote-button]')].every((button) => !button.disabled));
     await page.locator('[data-connected-reads-ready="true"]').waitFor();
     assert.equal(await page.evaluate(() => window.ethereum.request({ method: 'eth_chainId' })), '0x7a69');
-    assert.deepEqual(switches, ['0x7a69']);
+    assert.deepEqual(switches, ['0x7a69'], 'one switch request, to the app chain');
+    assert.equal(await page.getByText('Wrong network', { exact: true }).count(), 0);
+    assert.equal(browserHashes.length, 0);
     report.networkSwitchRequests = [...switches];
+    await page.screenshot({ path: path.join(work, 'auto-switch.png') });
+    await context.close();
+  });
+  await check('Refused switch shows Wrong network, disables votes, and the Switch button recovers', async () => {
+    switches.length = 0;
+    const { context, page } = await pageFor(voter, true, true);
+    await page.goto(url);
+    await text(page, 'Will local E2E pass?');
+    await page.getByRole('button', { name: 'Browser wallet', exact: true }).click();
+    await page.waitForFunction(() => document.body.textContent.includes('Disconnect'));
+    await text(page, 'Wrong network');
+    await page.locator('[data-vote-button]').first().waitFor();
+    assert.equal(await page.locator('[data-vote-button]').count(), 2);
+    for (const button of await page.locator('[data-vote-button]').all()) assert.equal(await button.isDisabled(), true);
+    assert.equal(await page.evaluate(() => window.ethereum.request({ method: 'eth_chainId' })), '0x1');
+    assert.deepEqual(switches, ['0x7a69'], 'the refused automatic request');
+    assert.equal(browserHashes.length, 0);
+    await page.screenshot({ path: path.join(work, 'wrong-network.png') });
+    await page.getByRole('button', { name: /^Switch to / }).click();
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-vote-button]')].length === 2 && [...document.querySelectorAll('[data-vote-button]')].every((button) => !button.disabled));
+    await page.locator('[data-connected-reads-ready="true"]').waitFor();
+    assert.equal(await page.evaluate(() => window.ethereum.request({ method: 'eth_chainId' })), '0x7a69');
+    assert.deepEqual(switches, ['0x7a69', '0x7a69']);
+    assert.equal(await page.getByText('Wrong network', { exact: true }).count(), 0);
+    assert.equal(browserHashes.length, 0);
     await page.screenshot({ path: path.join(work, 'correct-network-control.png') });
     await context.close();
   });

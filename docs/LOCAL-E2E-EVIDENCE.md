@@ -1,5 +1,14 @@
 # Local rehearsal evidence — reviewed fixes, 2026-11-17
 
+## Update, 2026-11-18: starter network guard
+
+The starter now warns with **Wrong network**, disables voting and asks the wallet to switch when it connects on another network (`lib/network.ts`, `components/WalletBar.tsx`, the effect in `app/page.tsx`). The old wrong-chain check below asserted that no switch request happened, so it failed once the switch worked. It is replaced by two checks:
+
+- **Switch on connect:** a wallet on chain `0x1` gets exactly one `wallet_switchEthereumChain` request for `0x7a69`, ends on the app chain with both vote buttons enabled, no **Wrong network** text and no sends.
+- **Refused switch:** the wallet rejects the first request (code 4001). The page shows **Wrong network**, both vote buttons stay disabled and nothing is sent. Clicking the bar's **Switch to …** button sends a second request, after which the buttons enable and the warning goes away.
+
+Two consecutive runs on fullstack `655acb1` plus this change, contracts `04f4355`: `/tmp/neo-e2e-ONdKTw` and `/tmp/neo-e2e-S3TFKg`, both 15 checks, `passed=true`, `cleanup=true`. The paragraph about the instructor chain guard below describes the earlier check. Part 4's synthetic transfer check still models the older Wallet MCP lesson; the current lesson uses a CDP agent wallet, which this harness does not cover.
+
 ## Scope and provenance
 
 This record supersedes the earlier `e956f3b` rehearsal. It verifies the independently reviewed in-scope repairs: learner-test independence, settled wrong-chain reads with a positive control, exact browser calldata and zero starting allowance, connected closed-market behavior, repeated-interrupt cleanup, and normal-versus-legacy preflight setup.
