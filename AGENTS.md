@@ -49,9 +49,10 @@ app/
         └── route.ts        # API route stub — participant builds this (Task 1), then gates it (Task 4)
 components/
 ├── MarketCard.tsx          # Market card layout with placeholder data — participant wires reads + odds (Task 2) and voting (Task 3)
-└── WalletBar.tsx           # Connect / disconnect, address, ETH balance (provided)
+└── WalletBar.tsx           # Connect / disconnect, address, ETH balance, wrong-network warning (provided)
 lib/
 ├── contracts.ts            # ABI definitions (PredictionMarketABI, ERC20ABI)
+├── network.ts              # useWrongNetwork(): true while the wallet is off Base Sepolia (provided)
 ├── podConfig.ts            # Pod member addresses (participant fills this in)
 ├── voteCalls.ts            # buildVoteCalls(pod, side): the encoded approve + vote pair for Task 3 (provided)
 ├── wagmi.ts                # Wagmi config: Base Sepolia, browser wallet connector

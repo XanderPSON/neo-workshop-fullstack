@@ -1,7 +1,7 @@
 'use client';
 
 import { WalletBar } from '@/components/WalletBar';
-import { useConnection, useChainId, useSwitchChain } from 'wagmi';
+import { useConnection, useSwitchChain } from 'wagmi';
 import { baseSepolia } from 'viem/chains';
 import { useEffect, useState } from 'react';
 
@@ -21,19 +21,21 @@ function ChecklistItem({ done, children }: { done: boolean; children: React.Reac
 
 export default function App() {
   const account = useConnection();
-  const chainId = useChainId();
-  const { switchChain } = useSwitchChain();
+  const { mutate: switchChain } = useSwitchChain();
 
   const podConfigDone = POD_MARKETS.length > 0;
   const [apiRouteDone, setApiRouteDone] = useState(false);
   const [marketCardDone, setMarketCardDone] = useState(false);
   const [transactionDone, setTransactionDone] = useState(false);
 
+  // Ask the wallet to move to Base Sepolia as soon as it connects on another network. This
+  // must read the wallet's own network (account.chainId); useChainId() only reports the
+  // app's configured chain and would never notice.
   useEffect(() => {
-    if (chainId && chainId !== baseSepolia.id) {
+    if (account.isConnected && account.chainId !== baseSepolia.id) {
       switchChain({ chainId: baseSepolia.id });
     }
-  }, [chainId, switchChain]);
+  }, [account.isConnected, account.chainId, switchChain]);
 
   // Re-check the API route every few seconds until it answers, so saving
   // route.ts ticks the box without a reload. 402 counts: the route is built
