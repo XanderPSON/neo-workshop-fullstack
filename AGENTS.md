@@ -54,7 +54,7 @@ lib/
 ├── contracts.ts            # ABI definitions (PredictionMarketABI, ERC20ABI)
 ├── podConfig.ts            # Pod member addresses (participant fills this in)
 ├── voteCalls.ts            # buildVoteCalls(pod, side): the encoded approve + vote pair for Task 3 (provided)
-├── wagmi.ts                # Wagmi config: Base Sepolia, Base Account + browser wallet connectors
+├── wagmi.ts                # Wagmi config: Base Sepolia, browser wallet connector
 └── x402.ts                 # x402 resource server (public testnet facilitator) + payTo() helper
 scripts/
 └── buy.ts                  # Backup x402 buyer with an enforced spend cap (--max-payment, default and ceiling $0.01)

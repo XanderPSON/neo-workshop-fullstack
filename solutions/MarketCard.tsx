@@ -60,7 +60,7 @@ export function MarketCard({ pod, account }: MarketCardProps) {
   const marketReady = !!marketData && !readFailed;
 
   // One click = two calls: approve the market to pull 10 tokens, then vote.
-  // lib/voteCalls.ts encodes them. Smart wallets (Base Account) batch them into one
+  // lib/voteCalls.ts encodes them. Wallets that support batching combine them into one
   // approval; other wallets fall back to two transactions (experimental_fallback).
   const { mutate: sendCalls, data: sent, isPending, error, reset } = useSendCalls();
   const {
