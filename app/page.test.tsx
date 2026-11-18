@@ -5,6 +5,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 // tests keep passing after you build the card and fill in your pod's addresses.
 vi.mock('wagmi', () => ({
   useConnection: () => ({ address: undefined, isConnected: false }),
+  useChainId: () => 84532,
   useSwitchChain: () => ({ mutate: vi.fn() }),
 }));
 

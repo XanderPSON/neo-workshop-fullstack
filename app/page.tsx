@@ -1,8 +1,8 @@
 'use client';
 
 import { WalletBar } from '@/components/WalletBar';
-import { useConnection, useSwitchChain } from 'wagmi';
-import { baseSepolia } from 'viem/chains';
+import { useWrongNetwork } from '@/lib/network';
+import { useChainId, useConnection, useSwitchChain } from 'wagmi';
 import { useEffect, useState } from 'react';
 
 import { POD_MARKETS } from '@/lib/podConfig';
@@ -28,14 +28,14 @@ export default function App() {
   const [marketCardDone, setMarketCardDone] = useState(false);
   const [transactionDone, setTransactionDone] = useState(false);
 
-  // Ask the wallet to move to Base Sepolia as soon as it connects on another network. This
-  // must read the wallet's own network (account.chainId); useChainId() only reports the
-  // app's configured chain and would never notice.
+  // Ask the wallet to move to this app's network (Base Sepolia) as soon as it connects on
+  // another one. useChainId() is the app's configured chain, so on its own it can never
+  // notice a wallet on the wrong network; useWrongNetwork() compares it with the wallet's.
+  const appChainId = useChainId();
+  const wrongNetwork = useWrongNetwork();
   useEffect(() => {
-    if (account.isConnected && account.chainId !== baseSepolia.id) {
-      switchChain({ chainId: baseSepolia.id });
-    }
-  }, [account.isConnected, account.chainId, switchChain]);
+    if (wrongNetwork) switchChain({ chainId: appChainId });
+  }, [wrongNetwork, appChainId, switchChain]);
 
   // Re-check the API route every few seconds until it answers, so saving
   // route.ts ticks the box without a reload. 402 counts: the route is built

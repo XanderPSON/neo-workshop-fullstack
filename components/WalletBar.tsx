@@ -1,8 +1,16 @@
 'use client';
 
 import { formatEther } from 'viem';
-import { useBalance, useConnect, useConnection, useConnectors, useDisconnect, useSwitchChain } from 'wagmi';
-import { baseSepolia } from 'wagmi/chains';
+import {
+  useBalance,
+  useChainId,
+  useChains,
+  useConnect,
+  useConnection,
+  useConnectors,
+  useDisconnect,
+  useSwitchChain,
+} from 'wagmi';
 
 import { useWrongNetwork } from '@/lib/network';
 
@@ -21,6 +29,9 @@ export function WalletBar() {
   const { disconnect } = useDisconnect();
   const { mutate: switchChain, isPending: isSwitching } = useSwitchChain();
   const wrongNetwork = useWrongNetwork();
+  // The one network this app is configured for (lib/wagmi.ts).
+  const appChainId = useChainId();
+  const appChainName = useChains().find((chain) => chain.id === appChainId)?.name ?? 'the right network';
 
   // A wallet extension that announces itself gets a button under its own name (for example
   // "Coinbase Wallet"). The generic "Browser wallet" button is only a fallback, so a visitor
@@ -54,11 +65,11 @@ export function WalletBar() {
       >
         <span className="font-medium text-red-200">Wrong network</span>
         <button
-          onClick={() => switchChain({ chainId: baseSepolia.id })}
+          onClick={() => switchChain({ chainId: appChainId })}
           disabled={isSwitching}
           className="rounded-lg bg-red-600 px-3 py-1.5 font-medium text-white hover:bg-red-500 disabled:opacity-50"
         >
-          Switch to Base Sepolia
+          Switch to {appChainName}
         </button>
         <button onClick={() => disconnect()} className="text-gray-400 hover:text-red-300">
           Disconnect
