@@ -3,7 +3,7 @@
 ## Overview
 
 This is a Next.js starter app for building a prediction market aggregator dashboard.
-Participants implement backend (API route) and frontend (React component) code to read onchain data and vote. Current Part 4 uses Wallet MCP separately to transfer custom test tokens to a teammate who then bets in this app. The retained x402 Tasks 4–5 below are optional legacy exercises, not prerequisites for the current four-part lab.
+Participants implement backend (API route) and frontend (React component) code to read onchain data and vote. Current Part 4 gives your AI agent its own CDP wallet on Base Sepolia, funds it with test ETH and your pod's tokens, and has it bet in a pod market by itself. The retained x402 Tasks 4–5 below are optional legacy exercises, not prerequisites for the current four-part lab.
 
 The app aggregates prediction markets from an entire pod (group of participants) into one dashboard.
 
@@ -26,7 +26,7 @@ Every dependency in `package.json` is pinned to an exact version, and `package-l
 
 ## AI testing and recovery
 
-Before coaching a learner, implementing a requested exercise, running local E2E, or diagnosing a failed/pending transaction, read [docs/AI-TESTING.md](docs/AI-TESTING.md). It defines progress-preserving recovery and the isolated instructor harness; a local pass is not Wallet MCP or Base Sepolia completion.
+Before coaching a learner, implementing a requested exercise, running local E2E, or diagnosing a failed/pending transaction, read [docs/AI-TESTING.md](docs/AI-TESTING.md). It defines progress-preserving recovery and the isolated instructor harness; a local pass is not a Base Sepolia or CDP agent-wallet completion.
 
 ## Commands
 

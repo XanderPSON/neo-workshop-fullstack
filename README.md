@@ -2,11 +2,11 @@
 
 A Next.js starter app for Day 2 of the **Intro to Onchain Development** workshop. This app aggregates prediction markets from your entire pod into a single dashboard where you can view odds and place votes.
 
-This workshop uses **AI-driven development**: prompt Toshi (or your AI coding agent) to generate the API route and Wagmi hooks from the requirements in the code, then review and test the diff. Current Part 4 uses Wallet MCP to transfer custom test tokens to a teammate who bets through this dashboard. Hosting and the retained legacy x402 exercises are optional. You need **Node.js 22+**.
+This workshop uses **AI-driven development**: prompt Toshi (or your AI coding agent) to generate the API route and Wagmi hooks from the requirements in the code, then review and test the diff. Current Part 4 gives your AI agent its own CDP wallet on Base Sepolia, funds it with test ETH and your pod's tokens, and has it bet in a pod market by itself. Hosting and the retained legacy x402 exercises are optional. You need **Node.js 22+**.
 
 ## Testing and getting unstuck
 
-For the current four-part transfer/bet path, coaching boundaries, safe transaction recovery and the one-command disposable Anvil/browser rehearsal, read [AI testing and recovery](docs/AI-TESTING.md). The rehearsal needs no wallet secrets and leaves your exercise code and running preview unchanged. The older x402 exercises below are not required for the current Part 4 Wallet MCP token transfer.
+For the current four-part path, coaching boundaries, safe transaction recovery and the one-command disposable Anvil/browser rehearsal, read [AI testing and recovery](docs/AI-TESTING.md). The rehearsal needs no wallet secrets and leaves your exercise code and running preview unchanged. The older x402 exercises below are not required for the current Part 4 agent-wallet bet.
 
 ## The Cross-Wire
 

@@ -4,7 +4,7 @@
 
 For a learner asking for help, coach: inspect their current diff and failing check, explain the smallest next step, and let them implement it. A request to test or diagnose is not permission to finish the exercises. When they explicitly request implementation, scope changes to the named TODO/file, preserve the provided layout and helpers, and verify the result. Read `AGENTS.md` before editing. Reference implementations remain opt-in.
 
-The current four-part lesson ends with a Wallet MCP custom-token transfer and a teammate's dashboard bet. This repo also retains older, optional x402 exercises and tooling. x402 is not needed for that transfer/bet path. The local harness below is instructor verification, not a learner's solution or proof of Wallet MCP integration.
+The current four-part lesson ends with an AI agent betting from its own CDP wallet on Base Sepolia (approve, then vote, built with Foundry and sent through Toshi's CDP connection). This repo also retains older, optional x402 exercises and tooling. x402 is not needed for that path. The local harness below is instructor verification, not a learner's solution or proof of the CDP agent-wallet step.
 
 `npm run preflight` checks normal RPC-only app setup. Only an explicitly chosen legacy paid-API exercise uses `npm run preflight -- --legacy-x402`: provide the public server payout address `X402_PAY_TO` and optionally `X402_FACILITATOR_URL` in that legacy environment. `BUYER_PRIVATE_KEY` is optional, separate local backup-buyer configuration; never upload it to the app host or include its value in chat or logs. Normal Parts 3–4 require none of these opt-in variables.
 
@@ -40,6 +40,6 @@ The runner records its owned PIDs in `report.json`. If the runner itself was for
 
 ## Live checks remain separate
 
-A green local run does **not** establish Base Sepolia deployment/source verification, browser-extension approval UX, Base Account batching, Wallet MCP session authorization, token indexing, real transfer approval, explorer confirmation, hosting or classroom timing. A facilitator and learner must separately confirm the actual Wallet MCP wallet supports Base Sepolia with per-write approval, then verify the one approved transfer and recipient bet. Stop on mainnet-only or automatic-spending sessions; do not change wallet security settings as recovery.
+A green local run does **not** establish Base Sepolia deployment/source verification, browser-extension approval UX, the CDP agent wallet's setup and sends, explorer confirmation, hosting or classroom timing. A facilitator must separately confirm on Base Sepolia that the agent wallet holds only test funds, then verify its one approve and one vote on BaseScan. Never point the agent wallet at mainnet, and do not change wallet security settings as recovery.
 
 Keep keys, seed phrases, passwords, sign-in codes, environment-file contents and RPC credentials out of prompts, logs, screenshots and commits. This harness copies only allowlisted source/config files, sanitizes child environments and uses no private keys. In live diagnosis, record presence/absence of required settings and redacted errors, never dump `env`, `.env` or wallet files. Record each check as passed, failed, blocked or not run; preserve the learner's progress and distinguish local simulation from live completion.
