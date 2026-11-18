@@ -52,7 +52,7 @@ import { buildVoteCalls } from '@/lib/voteCalls';`);
   const message = error || statusError ? 'Vote request failed' : isPending ? 'Signing' : status?.status === 'success' ? 'Vote confirmed' : status?.status === 'failure' ? 'Vote failed' : busy ? 'Pending' : '';
 
 ` + card.slice(end);
-  card = card.replace('      data-market-stub', '      data-market-stub={!market || undefined}');
+  card = card.replace('      data-market-stub', '      data-market-stub={!market || undefined}\n      data-connected-reads-ready={(!!account.address && !!market && data?.[1]?.status === "success") || undefined}');
   card = card.replace('      {resolved ? (', '      <p role="status">{message}</p>\n      {resolved ? (');
   for (const side of ['true', 'false']) {
     card = card.replace('              disabled\n', `              data-vote-button\n              disabled={!market || busy || resolved || account.chainId !== 31337}\n              onClick={() => sendCalls({ calls: buildVoteCalls(pod, ${side}), experimental_fallback: true })}\n`);

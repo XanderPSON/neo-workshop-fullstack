@@ -1,5 +1,6 @@
 // Day 2 preflight: run `npm run preflight` before the session starts.
-// Checks your machine, env, Base Sepolia, and the x402 facilitator. Read-only: sends nothing.
+// Checks normal app setup and Base Sepolia. Read-only: sends no transactions.
+// Explicit legacy opt-in: npm run preflight -- --legacy-x402 (also checks facilitator/buyer).
 import { existsSync, readFileSync } from 'node:fs';
 import { createPublicClient, formatEther, formatUnits, http, isAddress, parseAbi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -23,6 +24,13 @@ function loadEnv() {
   return true;
 }
 
+const args = process.argv.slice(2);
+if (args.some((arg) => arg !== '--legacy-x402')) {
+  console.error('Usage: npm run preflight -- [--legacy-x402]');
+  process.exit(2);
+}
+const legacyX402 = args.includes('--legacy-x402');
+
 async function main() {
   console.log('\nNEO Day 2 preflight\n');
 
@@ -31,7 +39,7 @@ async function main() {
   else fail(`Node ${process.versions.node}: install Node 22 or newer (nvm install 22)`);
 
   if (existsSync('node_modules/next')) ok('Dependencies installed');
-  else fail('Run npm install');
+  else fail('Run npm ci');
 
   if (loadEnv()) ok('.env.local found');
   else fail('Missing .env.local: cp .env.local.example .env.local');
@@ -46,42 +54,47 @@ async function main() {
     fail(`Cannot reach RPC ${rpc}`);
   }
 
-  const payTo = process.env.X402_PAY_TO;
-  if (payTo && isAddress(payTo)) {
-    ok(`X402_PAY_TO = ${payTo}`);
-  } else {
-    warn('X402_PAY_TO not set yet (needed for Part 4, the x402 lab)');
-  }
-
-  try {
-    const res = await fetch(`${process.env.X402_FACILITATOR_URL || 'https://x402.org/facilitator'}/supported`);
-    const body = (await res.json()) as { kinds?: Array<{ network: string; scheme: string }> };
-    if (body.kinds?.some((k) => k.network === 'eip155:84532' && k.scheme === 'exact')) {
-      ok('x402 facilitator supports Base Sepolia');
+  if (legacyX402) {
+    const payTo = process.env.X402_PAY_TO;
+    if (payTo && isAddress(payTo)) {
+      ok(`X402_PAY_TO = ${payTo}`);
     } else {
-      fail('x402 facilitator does not list eip155:84532 exact: tell a facilitator');
+      fail('Legacy x402 opt-in needs the public X402_PAY_TO payout address; not needed for current Part 4');
     }
-  } catch {
-    fail('Cannot reach the x402 facilitator: tell a facilitator');
-  }
 
-  const key = process.env.BUYER_PRIVATE_KEY;
-  if (key && /^0x[0-9a-fA-F]{64}$/.test(key)) {
-    const buyer = privateKeyToAccount(key as `0x${string}`).address;
-    const [eth, usdc] = await Promise.all([
-      client.getBalance({ address: buyer }),
-      client.readContract({
-        address: USDC,
-        abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
-        functionName: 'balanceOf',
-        args: [buyer],
-      }),
-    ]);
-    const line = `Backup buyer ${buyer}: ${formatEther(eth)} ETH, ${formatUnits(usdc, 6)} USDC`;
-    if (usdc >= 10_000n) ok(line);
-    else warn(`${line} (needs >= 0.01 test USDC for npm run buy)`);
+    try {
+      const res = await fetch(`${process.env.X402_FACILITATOR_URL || 'https://x402.org/facilitator'}/supported`);
+      const body = (await res.json()) as { kinds?: Array<{ network: string; scheme: string }> };
+      if (body.kinds?.some((k) => k.network === 'eip155:84532' && k.scheme === 'exact')) {
+        ok('x402 facilitator supports Base Sepolia');
+      } else {
+        fail('x402 facilitator does not list eip155:84532 exact: tell a facilitator');
+      }
+    } catch {
+      fail('Cannot reach the x402 facilitator: tell a facilitator');
+    }
+
+    const key = process.env.BUYER_PRIVATE_KEY;
+    if (key && /^0x[0-9a-fA-F]{64}$/.test(key)) {
+      const buyer = privateKeyToAccount(key as `0x${string}`).address;
+      const [eth, usdc] = await Promise.all([
+        client.getBalance({ address: buyer }),
+        client.readContract({
+          address: USDC,
+          abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+          functionName: 'balanceOf',
+          args: [buyer],
+        }),
+      ]);
+      const line = `Backup buyer ${buyer}: ${formatEther(eth)} ETH, ${formatUnits(usdc, 6)} USDC`;
+      if (usdc >= 10_000n) ok(line);
+      else warn(`${line} (needs >= 0.01 test USDC for npm run buy)`);
+    } else {
+      warn('BUYER_PRIVATE_KEY not set (only needed for the backup buyer)');
+    }
+
   } else {
-    warn('BUYER_PRIVATE_KEY not set (only needed for the backup buyer)');
+    ok('Current Parts 3–4 need no x402 or app wallet key; legacy checks skipped (opt in with --legacy-x402)');
   }
 
   console.log(failures ? `\n${failures} problem(s) to fix before the session.\n` : '\nAll set. See you on Day 2.\n');

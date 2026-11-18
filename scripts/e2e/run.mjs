@@ -9,9 +9,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdir, mkdtemp, readFile, writeFile, cp, symlink, open } from 'node:fs/promises';
-import { createPublicClient, createWalletClient, http, parseEther, encodeFunctionData, toFunctionSelector } from 'viem';
+import { createPublicClient, createWalletClient, http, parseEther, decodeFunctionData } from 'viem';
 import { anvil } from 'viem/chains';
 import { completeApp } from './complete-app.mjs';
+import { installSignalCleanup } from './signals.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2);
@@ -35,8 +36,20 @@ for (const key of ['NODE_EXTRA_CA_CERTS', 'SSL_CERT_FILE', 'NPM_CONFIG_CAFILE'])
   if (process.env[key]) env[key] = process.env[key];
 }
 const json = (value) => JSON.stringify(value, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
-async function save(name, value) { await writeFile(path.join(work, name), typeof value === 'string' ? value : json(value)); }
-async function check(name, action) { const result = await action(); report.checks.push(name); await save('report.json', report); console.log(`PASS ${name}`); return result; }
+let saves = Promise.resolve();
+async function save(name, value) {
+  saves = saves.then(() => writeFile(path.join(work, name), typeof value === 'string' ? value : json(value)));
+  await saves;
+}
+async function check(name, action) {
+  if (report.interrupted) throw new Error('Rehearsal interrupted');
+  const result = await action();
+  if (report.interrupted) throw new Error('Rehearsal interrupted');
+  report.checks.push(name);
+  await save('report.json', report);
+  console.log(`PASS ${name}`);
+  return result;
+}
 async function port() {
   const server = createServer();
   server.listen(0, '127.0.0.1');
@@ -47,21 +60,25 @@ async function port() {
   return value;
 }
 async function start(command, argv, cwd, name, extra = {}) {
+  if (report.interrupted) throw new Error('Rehearsal interrupted');
   const log = await open(path.join(work, `${name}.log`), 'w');
+  if (report.interrupted) { await log.close(); throw new Error('Rehearsal interrupted'); }
   const child = spawn(command, argv, { cwd, env: { ...env, ...extra }, stdio: ['ignore', log.fd, log.fd], detached: true });
-  await log.close();
   child.done = new Promise((resolve) => {
     child.once('exit', (code) => resolve(code));
     child.once('error', (error) => { child.spawnError = error; resolve(-1); });
   });
   children.push(child);
   report.processes.push({ name, pid: child.pid });
+  await log.close();
   return child;
 }
 async function stop(child) {
   if (!child.pid) return;
   try { process.kill(-child.pid, 'SIGTERM'); } catch (e) { if (e.code !== 'ESRCH') throw e; }
-  await Promise.race([child.done, new Promise((r) => setTimeout(r, 3000))]);
+  let timer;
+  try { await Promise.race([child.done, new Promise((resolve) => { timer = setTimeout(resolve, 3000); })]); }
+  finally { clearTimeout(timer); }
   try { process.kill(-child.pid, 'SIGKILL'); } catch (e) { if (e.code !== 'ESRCH') throw e; }
   await child.done;
 }
@@ -84,7 +101,7 @@ async function ready(child, probe, name) {
   throw new Error(`${name} readiness timed out`);
 }
 async function snapshot(source, target, dirs) {
-  // Copy an explicit allowlist: never .env, keystores, caches or solution sources.
+  // Copy an explicit allowlist: only the public .example, never actual env/keystore files.
   await mkdir(target, { recursive: true });
   for (const file of dirs) await cp(path.join(source, file), path.join(target, file), { recursive: true, dereference: true });
 }
@@ -105,13 +122,10 @@ function cleanup() {
   })();
   return cleanupPromise;
 }
-for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {
-  report.interrupted = signal;
-  void cleanup().finally(() => process.exit(130));
-});
+installSignalCleanup({ cleanup, onInterrupt: (signal) => { report.interrupted = signal; } });
 
 try {
-  await snapshot(root, app, ['app', 'components', 'lib', 'package.json', 'package-lock.json', 'postcss.config.mjs', 'tailwind.config.ts', 'tsconfig.json', 'next-env.d.ts', 'eslint.config.mjs', 'vitest.config.ts', 'vitest.setup.ts']);
+  await snapshot(root, app, ['app', 'components', 'lib', 'scripts', '.env.local.example', 'package.json', 'package-lock.json', 'postcss.config.mjs', 'tailwind.config.ts', 'tsconfig.json', 'next-env.d.ts', 'eslint.config.mjs', 'vitest.config.ts', 'vitest.setup.ts']);
   await symlink(path.join(root, 'node_modules'), path.join(app, 'node_modules'), 'dir');
   await run('python3', [path.join(contractsSource, 'script/prepare-instructor.py'), contracts], work, 'prepare-contracts');
   report.sources = {
@@ -120,6 +134,7 @@ try {
     contractsStatus: execFileSync('git', ['status', '--short'], { cwd: contractsSource, encoding: 'utf8' }).trim(),
     harnessHash: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
     appFixtureHash: createHash('sha256').update(await readFile(path.join(root, 'scripts/e2e/complete-app.mjs'))).digest('hex'),
+    signalHandlerHash: createHash('sha256').update(await readFile(path.join(root, 'scripts/e2e/signals.mjs'))).digest('hex'),
     contractHelperHash: createHash('sha256').update(await readFile(path.join(contractsSource, 'script/verify_workshop.py'))).digest('hex'),
   };
   await check('Completed copied contract exercises pass original tests', () => run('forge', ['test', '-vv'], contracts, 'contracts-tests'));
@@ -171,18 +186,20 @@ try {
   await tx('Fund browser voter', owner, token, tokenArtifact.abi, 'transfer', [voter, parseEther('30')]);
   assert.equal(await t('decimals'), 18);
   assert.equal((await m('token')).toLowerCase(), token.toLowerCase());
-  await check('Missing allowance rejects without changing pools', async () => {
+  await check('EVM simulation rejects missing allowance', async () => {
     await assert.rejects(() => client.simulateContract({ account: voter, address: market, abi: marketArtifact.abi, functionName: 'vote', args: [0n, true, parseEther('10')] }), /InsufficientAllowance/);
     assert.equal((await m('markets', [0n]))[1], 0n);
   });
-  await check('Insufficient token balance rejects and rolls back stake', async () => {
+  await check('EVM simulation rejects insufficient token balance', async () => {
     await tx('Empty recipient approve', recipient, token, tokenArtifact.abi, 'approve', [market, parseEther('10')]);
     await assert.rejects(() => client.simulateContract({ account: recipient, address: market, abi: [...marketArtifact.abi, ...tokenArtifact.abi.filter((entry) => entry.type === 'error')], functionName: 'vote', args: [0n, true, parseEther('10')] }), /InsufficientBalance/);
     assert.equal(await m('amountVoted', [0n, recipient]), 0n);
+    await tx('Clear simulation-only recipient allowance', recipient, token, tokenArtifact.abi, 'approve', [market, 0n]);
+    assert.equal(await t('allowance', [recipient, market]), 0n);
   });
   await completeApp(app, market, token);
   const appEnv = { BASE_SEPOLIA_RPC: rpc, NEXT_PUBLIC_RPC_URL: rpc };
-  await check('Starter unit tests', () => run('npm', ['test'], app, 'app-tests', appEnv));
+  await check('Full learner npm test after disposable card completion (including instructor safety tests)', () => run('npm', ['test'], app, 'app-tests', appEnv));
   await check('Completed app lint', () => run('npm', ['run', 'lint'], app, 'lint', appEnv));
   await check('Completed app typecheck', () => run(path.join(root, 'node_modules/.bin/tsc'), ['--noEmit'], app, 'typecheck', appEnv));
   await check('Isolated production build', () => run('npm', ['run', 'build', '--', '--webpack'], app, 'build', appEnv));
@@ -204,7 +221,8 @@ try {
   assert.equal(require('playwright/package.json').version, '1.65.1', 'pinned browser tooling');
   await run(process.execPath, [path.join(path.dirname(require.resolve('playwright/package.json')), 'cli.js'), 'install', 'chromium'], work, 'browser-install');
   const { chromium } = require('playwright');
-  browser = await chromium.launch({ headless: true });
+  // The runner owns shutdown. Playwright's default SIGINT handler exits early.
+  browser = await chromium.launch({ headless: true, handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false });
   const browserHashes = [];
   const switches = [];
   async function pageFor(account, wrongNetwork = false) {
@@ -229,6 +247,7 @@ try {
       let chainId = wrongNetwork ? '0x1' : '0x7a69';
       const listeners = {};
       window.__requests = [];
+      function assertLocalChain(id) { if (id !== '0x7a69') throw new Error('Synthetic provider only permits the local chain'); }
       window.ethereum = {
         on: (event, cb) => (listeners[event] ??= []).push(cb),
         removeListener: (event, cb) => { listeners[event] = (listeners[event] ?? []).filter((l) => l !== cb); },
@@ -238,7 +257,7 @@ try {
           if (method === 'eth_chainId') return chainId;
           if (method === 'wallet_switchEthereumChain') {
             await window.recordSwitch(params[0].chainId);
-            if (wrongNetwork) throw Object.assign(new Error('Synthetic user refused network switch'), { code: 4001 });
+            assertLocalChain(params[0].chainId);
             chainId = params[0].chainId;
             for (const cb of listeners.chainChanged ?? []) cb(chainId);
             return null;
@@ -252,7 +271,7 @@ try {
     return { context, page: await context.newPage() };
   }
   async function text(page, value) { await page.getByText(value, { exact: true }).waitFor({ state: 'visible', timeout: 30000 }); }
-  await check('Wrong-network wallet cannot submit a vote', async () => {
+  await check('Instructor chain guard disables settled reads on wrong chain and enables same-page local-chain control', async () => {
     const { context, page } = await pageFor(voter, true);
     await page.goto(url);
     await text(page, 'Will local E2E pass?');
@@ -260,11 +279,23 @@ try {
     await page.waitForFunction(() => document.body.textContent.includes('Disconnect'));
     await page.locator('[data-vote-button]').first().waitFor();
     assert.equal(await page.locator('[data-vote-button]').count(), 2);
+    await page.locator('[data-connected-reads-ready="true"]').waitFor();
+    await text(page, 'Will local E2E pass?');
+    assert.equal(await page.locator('[data-market-stub]').count(), 0);
+    assert.equal(await page.getByText('Connect wallet to vote', { exact: true }).count(), 0);
     for (const button of await page.locator('[data-vote-button]').all()) assert.equal(await button.isDisabled(), true);
     assert.equal(browserHashes.length, 0);
     assert.equal(await page.evaluate(() => window.ethereum.request({ method: 'eth_chainId' })), '0x1');
-    report.networkSwitchRequests = switches;
+    assert.deepEqual(switches, [], 'starter auto-switch is not certified');
     await page.screenshot({ path: path.join(work, 'wrong-network.png') });
+    // Explicit test-wallet switch, not a claim about the starter auto-switch effect.
+    await page.evaluate(() => window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x7a69' }] }));
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-vote-button]')].length === 2 && [...document.querySelectorAll('[data-vote-button]')].every((button) => !button.disabled));
+    await page.locator('[data-connected-reads-ready="true"]').waitFor();
+    assert.equal(await page.evaluate(() => window.ethereum.request({ method: 'eth_chainId' })), '0x7a69');
+    assert.deepEqual(switches, ['0x7a69']);
+    report.networkSwitchRequests = [...switches];
+    await page.screenshot({ path: path.join(work, 'correct-network-control.png') });
     await context.close();
   });
   async function browserVote(account, side, yes, no, label) {
@@ -284,7 +315,15 @@ try {
       const transaction = await client.getTransaction({ hash });
       assert.equal(transaction.from.toLowerCase(), account.toLowerCase());
       assert.equal(transaction.to.toLowerCase(), (i === 0 ? token : market).toLowerCase());
-      assert.ok(transaction.input.startsWith(toFunctionSelector(i === 0 ? 'approve(address,uint256)' : 'vote(uint256,bool,uint256)')));
+      const decoded = decodeFunctionData({ abi: i === 0 ? tokenArtifact.abi : marketArtifact.abi, data: transaction.input });
+      assert.equal(decoded.functionName, i === 0 ? 'approve' : 'vote');
+      if (i === 0) {
+        assert.equal(decoded.args[0].toLowerCase(), market.toLowerCase());
+        assert.equal(decoded.args[1], parseEther('10'));
+      } else {
+        assert.deepEqual(decoded.args, [0n, side === 'Yes', parseEther('10')]);
+      }
+      (report.browserCalls ??= []).push({ label, hash, functionName: decoded.functionName, args: decoded.args });
     }
     assert.equal((await m('markets', [0n]))[1], parseEther(yes));
     assert.equal((await m('markets', [0n]))[2], parseEther(no));
@@ -302,19 +341,24 @@ try {
     await tx('Part4 synthetic transfer', owner, token, tokenArtifact.abi, 'transfer', [recipient, parseEther('10')]);
     assert.equal(await t('balanceOf', [recipient]), before + parseEther('10'));
     assert.equal(await t('balanceOf', [owner]), senderBefore - parseEther('10'));
-    assert.equal(await t('allowance', [recipient, market]), parseEther('10'));
+    assert.equal(await t('allowance', [recipient, market]), 0n);
   });
   await check('Part4 recipient browser bet changes pools and token balances', async () => {
+    assert.equal(await t('allowance', [recipient, market]), 0n, 'recipient browser approval starts from zero');
     await browserVote(recipient, 'No', '10', '10', 'part4');
     assert.equal(await t('balanceOf', [recipient]), 0n);
     assert.equal(await t('balanceOf', [market]), parseEther('20'));
     assert.equal(await t('allowance', [recipient, market]), 0n);
   });
-  await check('Closed market rejects call and browser hides vote buttons', async () => {
+  await check('Closed market rejects EVM simulation and hides voting while browser wallet is connected', async () => {
     await tx('Close V2', owner, market, marketArtifact.abi, 'resolveMarket', [0n, true]);
     await assert.rejects(() => client.simulateContract({ account: voter, address: market, abi: marketArtifact.abi, functionName: 'vote', args: [0n, true, parseEther('10')] }), /MarketAlreadyResolved/);
     const { context, page } = await pageFor(voter);
     await page.goto(url); await text(page, 'Market Resolved');
+    await page.getByRole('button', { name: 'Browser wallet', exact: true }).click();
+    await page.getByRole('button', { name: 'Disconnect', exact: true }).waitFor();
+    await page.locator('[data-connected-reads-ready="true"]').waitFor();
+    await text(page, 'Market Resolved');
     assert.equal(await page.locator('[data-vote-button]').count(), 0);
     assert.equal((await m('markets', [0n]))[1], parseEther('10'));
     await context.close();

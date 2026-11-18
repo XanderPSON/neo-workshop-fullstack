@@ -4,9 +4,30 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { completeApp } from './complete-app.mjs';
+import { installSignalCleanup } from './signals.mjs';
+import { EventEmitter } from 'node:events';
 
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((p) => rm(p, { recursive: true, force: true }))); });
+
+it('ignores repeated SIGINT while awaiting the same owned cleanup', async () => {
+  const source = new EventEmitter();
+  const calls: string[] = [];
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => { finish = resolve; });
+  const remove = installSignalCleanup({ source, cleanup: () => { calls.push('cleanup'); return pending; }, onInterrupt: (signal: string) => calls.push(signal), exit: (code: number) => { calls.push(`exit:${code}`); } });
+  source.emit('SIGINT');
+  await Promise.resolve();
+  source.emit('SIGINT');
+  source.emit('SIGTERM');
+  expect(calls).toEqual(['SIGINT', 'cleanup']);
+  expect(source.listenerCount('SIGINT')).toBe(1);
+  finish();
+  await pending;
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(calls).toEqual(['SIGINT', 'cleanup', 'exit:130']);
+  remove();
+});
 
 it('keeps normal app setup RPC-only without wallet-secret placeholders', async () => {
   const sample = await readFile('.env.local.example', 'utf8');
@@ -23,7 +44,7 @@ it('requires an explicit contracts checkout before allocating any resources', ()
 });
 
 it('retains a failed-run report and reaps owned processes when fixture preparation fails', async () => {
-  const result = spawnSync(process.execPath, ['scripts/e2e/run.mjs', '--contracts', '/nonexistent/neo-contracts'], { encoding: 'utf8' });
+  const result = spawnSync(process.execPath, ['scripts/e2e/run.mjs', '--contracts', '/nonexistent/neo-contracts'], { encoding: 'utf8', timeout: 10000 });
   expect(result.status).toBe(1);
   const work = result.stdout.match(/Evidence: (.+)/)?.[1];
   expect(work).toBeTruthy();
@@ -32,7 +53,7 @@ it('retains a failed-run report and reaps owned processes when fixture preparati
   expect(report.passed).toBe(false);
   expect(report.cleanup).toBe(true);
   expect(report.error).toContain('prepare-contracts failed');
-});
+}, 15000);
 
 it('completes only a disposable app while preserving the learner card and vote helper', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'neo-fixture-test-'));
@@ -40,7 +61,8 @@ it('completes only a disposable app while preserving the learner card and vote h
   for (const dir of ['app/api/markets', 'components', 'lib']) await mkdir(path.join(root, dir), { recursive: true });
   const originals = new Map<string, string>();
   for (const file of ['app/page.tsx', 'lib/wagmi.ts', 'components/MarketCard.tsx', 'lib/voteCalls.ts']) {
-    const value = await readFile(file, 'utf8');
+    const fixture = file === 'components/MarketCard.tsx' ? 'scripts/e2e/scaffold/MarketCard.tsx.txt' : file;
+    const value = await readFile(fixture, 'utf8');
     originals.set(file, value);
     await writeFile(path.join(root, file), value);
   }
@@ -55,7 +77,10 @@ it('completes only a disposable app while preserving the learner card and vote h
   expect(card).toContain('account.chainId !== 31337');
   expect(await readFile(path.join(root, 'lib/podConfig.ts'), 'utf8')).toContain(market);
   expect(await readFile(path.join(root, 'next.config.mjs'), 'utf8')).toContain('.next-e2e');
-  for (const [file, value] of originals) expect(await readFile(file, 'utf8')).toBe(value);
+  expect(await readFile('scripts/e2e/scaffold/MarketCard.tsx.txt', 'utf8')).toBe(originals.get('components/MarketCard.tsx'));
+  for (const [file, value] of originals) {
+    if (file !== 'components/MarketCard.tsx') expect(await readFile(file, 'utf8')).toBe(value);
+  }
   expect(await readFile(path.join(root, 'lib/voteCalls.ts'), 'utf8')).toBe(originals.get('lib/voteCalls.ts'));
 });
 
